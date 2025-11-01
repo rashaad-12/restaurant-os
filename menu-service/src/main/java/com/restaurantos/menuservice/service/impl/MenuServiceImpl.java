@@ -44,7 +44,7 @@ public class MenuServiceImpl implements MenuService {
 
     @Override
     public List<MenuDTO> getMenuByRestaurant(Set<String> restaurantCodes) {
-        return menuRepository.findByRestaurantCodeInAndStatus(restaurantCodes, MenuStatus.PUBLISHED)
+        return menuRepository.findByRestaurantCodeIn(restaurantCodes)
                 .stream().map(menuMapper::toMenuDTO).toList();
     }
 

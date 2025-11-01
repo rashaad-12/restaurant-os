@@ -4,15 +4,16 @@ import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Duration;
 import java.util.Base64;
 
 @Getter
 @Setter
-@ConfigurationProperties(prefix = "app.security")
+@Component
+@ConfigurationProperties(prefix = "app.security.jwt")
 public class SecurityProperties {
 
     private JwtProperties internal;
@@ -31,5 +32,3 @@ public class SecurityProperties {
         }
     }
 }
-
-

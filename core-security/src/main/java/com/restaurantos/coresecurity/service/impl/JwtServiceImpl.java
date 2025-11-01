@@ -11,14 +11,18 @@ import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
 import java.security.Key;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -31,20 +35,25 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.collections4.MapUtils.isNotEmpty;
 
+@Slf4j
 @Service
 public class JwtServiceImpl implements JwtService {
 
     @Autowired
     ObjectMapper objectMapper;
 
-    private final Map<AuthType, SecurityProperties.JwtProperties> jwtConfigs;
+    @Autowired
+    private SecurityProperties jwtProperties;
 
-    public JwtServiceImpl(SecurityProperties props) {
-        this.jwtConfigs = Map.of(
-                AuthType.INTERNAL, props.getInternal(),
-                AuthType.CUSTOMER, props.getCustomer(),
-                AuthType.OTP, props.getOtp()
-        );
+    private final Map<AuthType, SecurityProperties.JwtProperties> jwtConfigs = new EnumMap<>(AuthType.class);
+
+    @PostConstruct
+    public void init() {
+        if (nonNull(jwtProperties)) {
+            if (nonNull(jwtProperties.getInternal())) jwtConfigs.put(AuthType.INTERNAL, jwtProperties.getInternal());
+            if (nonNull(jwtProperties.getCustomer())) jwtConfigs.put(AuthType.CUSTOMER, jwtProperties.getCustomer());
+            if (nonNull(jwtProperties.getOtp())) jwtConfigs.put(AuthType.OTP, jwtProperties.getOtp());
+        }
     }
 
     @Override
@@ -92,13 +101,11 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public Set<String> extractRestaurantCodes(String token) {
         Claims claims = parseClaims(token);
-        Object restaurantCodeObj = claims.get(RESTAURANT_CODES.getValue());
-        if (restaurantCodeObj instanceof Collection) {
-            return ((Collection<?>) restaurantCodeObj).stream()
-                    .map(Object::toString)
-                    .collect(Collectors.toSet());
-        }
-        return Collections.emptySet();
+        Object restaurantCodesClaim = claims.get(RESTAURANT_CODES.getValue());
+
+        if (isNull(restaurantCodesClaim)) return Collections.emptySet();
+
+        return Set.of(restaurantCodesClaim.toString().split(","));
     }
 
     @Override
@@ -162,7 +169,10 @@ public class JwtServiceImpl implements JwtService {
         if (isNull(authTypeName)) return null;
 
         try {
-            return AuthType.valueOf(authTypeName);
+            return Arrays.stream(AuthType.values())
+                    .filter(authType -> authType.getValue().equalsIgnoreCase(authTypeName))
+                    .findFirst()
+                    .orElse(null);
         } catch (IllegalArgumentException e) {
             return null;
         }

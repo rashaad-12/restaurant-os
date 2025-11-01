@@ -1,21 +1,25 @@
 spring:
-  data:
-    mongodb:
-      uri: mongodb://local:local@localhost:27017/menu_db?authSource=admin
-  devtools:
-    restart:
-      enabled: true
-    livereload:
-      enabled: true
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:mysql://localhost:5432/auth_db
+    username: auth_user
+    password: auth_pass
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
 
 server:
   port: 8081
 
 logging:
   level:
-    com.restaurantos: DEBUG
-    org.springframework.security: DEBUG
-    com.restaurantos.coresecurity: DEBUG
+    org.springframework.security: INFO
 
 app:
   security:

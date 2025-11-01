@@ -1,0 +1,19 @@
+description = 'user service'
+
+dependencies {
+    implementation project(':core-security')
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    runtimeOnly 'com.mysql:mysql-connector-j'
+}
+
+tasks.named('bootJar') {
+    archiveBaseName.set('user-service')
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

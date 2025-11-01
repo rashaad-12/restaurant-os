@@ -22,7 +22,7 @@ import static java.util.Objects.isNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Component
-public class RestaurantCodeArgumentResolver implements HandlerMethodArgumentResolver {
+public class RestaurantCodesArgumentResolver implements HandlerMethodArgumentResolver {
 
     @Autowired
     private JwtService jwtService;

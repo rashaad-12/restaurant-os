@@ -32,9 +32,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private JwtService jwtService;
 
-    @Autowired
-    private SecurityProperties properties;
-
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
@@ -54,7 +51,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Set<String> roles = jwtService.extractRoles(token);
                 log.debug("user roles: {}", roles);
 
-                Set<SimpleGrantedAuthority> authorities = roles.stream()
+                Set<SimpleGrantedAuthority> authorities = roles.isEmpty()
+                        ? Set.of(new SimpleGrantedAuthority("ROLE_USER"))
+                        : roles.stream()
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toSet());
 

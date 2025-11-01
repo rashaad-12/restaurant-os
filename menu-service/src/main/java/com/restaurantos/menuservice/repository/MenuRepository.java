@@ -11,7 +11,7 @@ import java.util.Set;
 @Repository
 public interface MenuRepository extends MongoRepository<Menu, String> {
 
-    List<Menu> findByRestaurantCodeAndStatus(String restaurantCode, MenuStatus status);
+    List<Menu> findByRestaurantCodeIn(Set<String> restaurantCodes);
 
     List<Menu> findByRestaurantCodeInAndStatus(Set<String> restaurantCodes, MenuStatus status);
 }
