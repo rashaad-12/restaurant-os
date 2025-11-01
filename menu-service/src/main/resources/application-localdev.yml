@@ -1,7 +1,7 @@
 spring:
   data:
     mongodb:
-      uri: mongodb://local:local@localhost:27017/menu_db?authSource=admin
+      uri: mongodb://dev:dev@localhost:27017/menu_db?authSource=admin
   devtools:
     restart:
       enabled: true
