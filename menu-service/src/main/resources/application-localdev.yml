@@ -13,7 +13,7 @@ server:
 
 logging:
   level:
-    com.restaurantos: DEBUG
+    com.restaurantos.menuservice: DEBUG
     org.springframework.security: DEBUG
     com.restaurantos.coresecurity: DEBUG
 

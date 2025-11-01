@@ -6,6 +6,6 @@ public enum MenuStatus {
 
     PUBLISHED,
 
-    ARCHIVED
+    ARCHIVED;
 
 }

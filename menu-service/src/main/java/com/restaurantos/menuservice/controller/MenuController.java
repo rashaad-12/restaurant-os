@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -25,7 +26,7 @@ public class MenuController {
     private MenuService menuService;
 
     @PostMapping
-    public ResponseEntity<MenuDTO> createMenu(@RequestBody MenuDTO request) {
+    public ResponseEntity<String> createMenu(@RequestBody List<MenuDTO> request) {
         return ResponseEntity.ok(menuService.createMenu(request));
     }
 
@@ -44,19 +45,23 @@ public class MenuController {
         return ResponseEntity.ok(menuService.getPublishedMenuByRestaurant(restaurantCodes));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<MenuDTO> updateMenu(@PathVariable String id, @RequestBody MenuDTO request) {
-        return ResponseEntity.ok(menuService.updateMenu(id, request));
+    @PutMapping
+    public ResponseEntity<String> updateMenu(@RequestBody List<MenuDTO> request) {
+        return ResponseEntity.ok(menuService.updateMenu(request));
     }
 
-    @PostMapping("/{id}/publishMenu")
-    public ResponseEntity<MenuDTO> publishMenu(@PathVariable String id) {
-        return ResponseEntity.ok(menuService.publishMenu(id));
+    @PatchMapping("/publishMenu")
+    public ResponseEntity<String> publishMenu(@RequestBody List<MenuDTO> request) {
+        return ResponseEntity.ok(menuService.publishMenu(request));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteMenu(@PathVariable String id) {
-        menuService.deleteMenu(id);
-        return ResponseEntity.noContent().build();
+    @PatchMapping("/archiveMenu")
+    public ResponseEntity<String> archiveMenu(@RequestBody List<MenuDTO> request) {
+        return ResponseEntity.ok(menuService.archiveMenu(request));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<String> deleteMenu(@RequestBody List<MenuDTO> request) {
+        return ResponseEntity.ok(menuService.deleteMenu(request));
     }
 }

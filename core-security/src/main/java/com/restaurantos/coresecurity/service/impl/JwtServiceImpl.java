@@ -11,13 +11,12 @@ import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
 import java.security.Key;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
@@ -169,10 +168,7 @@ public class JwtServiceImpl implements JwtService {
         if (isNull(authTypeName)) return null;
 
         try {
-            return Arrays.stream(AuthType.values())
-                    .filter(authType -> authType.getValue().equalsIgnoreCase(authTypeName))
-                    .findFirst()
-                    .orElse(null);
+            return AuthType.valueOf(authTypeName);
         } catch (IllegalArgumentException e) {
             return null;
         }

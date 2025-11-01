@@ -1,18 +1,11 @@
 package com.restaurantos.coresecurity.enums;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-@Getter
-@AllArgsConstructor
 public enum AuthType {
 
-    INTERNAL("Internal"),
+    INTERNAL,
 
-    CUSTOMER("Customer"),
+    CUSTOMER,
 
-    OTP("OTP");
-
-    private final String value;
+    OTP;
 
 }

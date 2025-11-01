@@ -7,13 +7,19 @@ import com.restaurantos.menuservice.mapper.MenuMapper;
 import com.restaurantos.menuservice.model.Menu;
 import com.restaurantos.menuservice.repository.MenuRepository;
 import com.restaurantos.menuservice.service.MenuService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
+import static org.apache.commons.collections4.CollectionUtils.isEmpty;
+
+@Slf4j
 @Service
 public class MenuServiceImpl implements MenuService {
 
@@ -23,13 +29,22 @@ public class MenuServiceImpl implements MenuService {
     @Autowired
     private MenuMapper menuMapper;
 
+    private static final String[] IGNORE_PROPERTIES = {"id", "createDttm", "updateDttm"};
+
     @Override
-    public MenuDTO createMenu(MenuDTO request) {
-        Menu menu = menuMapper.toMenuEntity(request);
-        return menuMapper.toMenuDTO(menuRepository.save(menu));
+    @Transactional
+    public String createMenu(List<MenuDTO> request) {
+        List<Menu> menus = request.stream()
+                .map(menuMapper::toMenuEntity)
+                .toList();
+
+        menuRepository.saveAll(menus);
+
+        return "Menu creation request was processed successfully";
     }
 
     @Override
+    @Transactional(readOnly = true)
     public MenuDTO getMenuById(String id) {
         return menuRepository.findById(id)
                 .map(menuMapper::toMenuDTO)
@@ -37,43 +52,103 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
-    public List<MenuDTO> getPublishedMenuByRestaurant(Set<String> restaurantCodes) {
-        return menuRepository.findByRestaurantCodeInAndStatus(restaurantCodes, MenuStatus.PUBLISHED)
-                .stream().map(menuMapper::toMenuDTO).toList();
-    }
-
-    @Override
+    @Transactional(readOnly = true)
     public List<MenuDTO> getMenuByRestaurant(Set<String> restaurantCodes) {
-        return menuRepository.findByRestaurantCodeIn(restaurantCodes)
-                .stream().map(menuMapper::toMenuDTO).toList();
+        return menuRepository.findByRestaurantCodeIn(restaurantCodes).stream()
+                .map(menuMapper::toMenuDTO)
+                .toList();
     }
 
     @Override
-    public MenuDTO updateMenu(String id, MenuDTO request) {
-        Menu menu = menuRepository.findById(id)
-                .orElseThrow(MenuNotFoundException::new);
-        menu.setName(request.getName());
-        menu.setDescription(request.getDescription());
-        menu.setItems(menuMapper.toMenuItemEntityList(request.getItems()));
-        return menuMapper.toMenuDTO(menuRepository.save(menu));
+    @Transactional(readOnly = true)
+    public List<MenuDTO> getPublishedMenuByRestaurant(Set<String> restaurantCodes) {
+        return menuRepository.findByRestaurantCodeInAndStatus(restaurantCodes, MenuStatus.PUBLISHED).stream()
+                .map(menuMapper::toMenuDTO)
+                .toList();
     }
 
     @Override
-    public MenuDTO publishMenu(String id) {
-        Menu menu = menuRepository.findById(id)
-                .orElseThrow(MenuNotFoundException::new);
+    @Transactional
+    public String updateMenu(List<MenuDTO> request) {
+        List<Menu> toUpdate = request.stream()
+                .map(menuRequest ->
+                        menuRepository.findByNameAndRestaurantCode(menuRequest.getName(), menuRequest.getRestaurantCode())
+                                .orElse(null))
+                .filter(Objects::nonNull)
+                .filter(existing -> !MenuStatus.ARCHIVED.equals(existing.getStatus()))
+                .toList();
 
-        if (menu.getStatus() == MenuStatus.PUBLISHED) {
-            return menuMapper.toMenuDTO(menu);
-        }
+        if (isEmpty(toUpdate)) return "No menus to publish";
 
-        menu.setStatus(MenuStatus.PUBLISHED);
-        menu.setPublishDttm(LocalDateTime.now());
-        return menuMapper.toMenuDTO(menuRepository.save(menu));
+        toUpdate.forEach( existing -> request.stream()
+                .filter(menuDTO -> menuDTO.getName().equals(existing.getName())
+                        && menuDTO.getRestaurantCode().equals(existing.getRestaurantCode()))
+                .findFirst()
+                .ifPresent(menuDTO -> {
+                    menuMapper.updateMenuFromDto(menuDTO, existing);
+                    if (existing.getStatus().equals(MenuStatus.PUBLISHED))
+                        existing.setPublishDttm(LocalDateTime.now());
+                    }
+                )
+        );
+
+        menuRepository.saveAll(toUpdate);
+
+        return "Menu updation request was processed successfully";
     }
 
     @Override
-    public void deleteMenu(String id) {
-        menuRepository.deleteById(id);
+    @Transactional
+    public String publishMenu(List<MenuDTO> request) {
+        List<Menu> toPublish = request.stream()
+                .map(menuRequest ->
+                        menuRepository.findByNameAndRestaurantCode(menuRequest.getName(), menuRequest.getRestaurantCode())
+                        .orElse(null))
+                .filter(Objects::nonNull)
+                .filter(menu -> !MenuStatus.PUBLISHED.equals(menu.getStatus()))
+                .toList();
+
+        if (isEmpty(toPublish)) return "No menus to publish";
+
+        toPublish.forEach(menu -> {
+            menu.setStatus(MenuStatus.PUBLISHED);
+            menu.setPublishDttm(LocalDateTime.now());
+        });
+
+        menuRepository.saveAll(toPublish);
+
+        return "Menu publish request was processed successfully";
+    }
+
+    @Override
+    @Transactional
+    public String archiveMenu(List<MenuDTO> request) {
+        List<Menu> toPublish = request.stream()
+                .map(menuRequest ->
+                        menuRepository.findByNameAndRestaurantCode(menuRequest.getName(), menuRequest.getRestaurantCode())
+                                .orElse(null))
+                .filter(Objects::nonNull)
+                .filter(menu -> !MenuStatus.ARCHIVED.equals(menu.getStatus()))
+                .toList();
+
+        if (isEmpty(toPublish)) return "No menus to publish";
+
+        toPublish.forEach(menu ->
+            menu.setStatus(MenuStatus.ARCHIVED)
+        );
+
+        menuRepository.saveAll(toPublish);
+
+        return "Menu archive request was processed successfully";
+    }
+
+    @Override
+    @Transactional
+    public String deleteMenu(List<MenuDTO> request) {
+        request.forEach(menuDTO ->
+                menuRepository.deleteByNameAndRestaurantCode(menuDTO.getName(), menuDTO.getRestaurantCode())
+        );
+
+        return "Menu deletion request was processed successfully";
     }
 }
