@@ -1,0 +1,15 @@
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: menu-db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: dev
+      MONGO_INITDB_ROOT_PASSWORD: dev
+      MONGO_INITDB_DATABASE: menu_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:

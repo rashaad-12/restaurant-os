@@ -1,0 +1,19 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+  data:
+    mongodb:
+      uri: mongodb://local:local@localhost:27017/menu_db?authSource=admin
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
+server:
+  port: 8081
+
+logging:
+  level:
+    com.restaurantos: DEBUG
