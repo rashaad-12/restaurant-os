@@ -18,5 +18,6 @@ public interface MenuRepository extends MongoRepository<Menu, String> {
 
     Optional<Menu> findByNameAndRestaurantCode(String name, String restaurantCode);
 
-    long deleteByNameAndRestaurantCode(String name, String restaurantCode);
+    void deleteByNameAndRestaurantCode(String name, String restaurantCode);
+
 }

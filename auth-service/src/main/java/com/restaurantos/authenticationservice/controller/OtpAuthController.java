@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/auth/otp")
+@RequestMapping("auth-api/v1/auth/otp")
 public class OtpAuthController {
 
     @Autowired

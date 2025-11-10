@@ -2,15 +2,20 @@ package com.restaurantos.authenticationservice.service.impl;
 
 import com.restaurantos.authenticationservice.dto.AuthRequest;
 import com.restaurantos.authenticationservice.service.InternalAuthService;
+import com.restaurantos.authenticationservice.util.CookieUtil;
 import com.restaurantos.coresecurity.config.SecurityProperties;
 import com.restaurantos.coresecurity.service.JwtService;
+import com.restaurantos.coresecurity.util.JwtTokenUtil;
+import com.restaurantos.userservice.enums.UserRole;
 import com.restaurantos.userservice.model.Restaurant;
 import com.restaurantos.userservice.model.User;
 import com.restaurantos.userservice.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -26,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.restaurantos.coresecurity.enums.CookieName.ROLES;
 import static java.util.Objects.isNull;
 import static com.restaurantos.coresecurity.enums.AuthType.INTERNAL;
 import static com.restaurantos.coresecurity.enums.CookieName.RESTAURANT_CODES;
@@ -47,31 +53,34 @@ public class InternalAuthServiceImpl implements InternalAuthService {
     @Autowired
     private PasswordEncoder encoder;
 
+    private Duration accessTokenTtl;
+
+    private Duration refreshTokenTtl;
+
+    @PostConstruct
+    public void init() {
+        accessTokenTtl = securityProperties.getInternal().getAccessTokenTtl();
+        refreshTokenTtl = securityProperties.getInternal().getRefreshTokenTtl();
+    }
+
     @Override
     public void authenticate(AuthRequest request, HttpServletResponse response) {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         if (!request.isInternal() || !encoder.matches(request.getPassword(), user.getPassword())) {
-                throw new BadCredentialsException("Bad credentials");
+            throw new BadCredentialsException("Bad credentials");
         }
 
-        Map<String, Object> claims = new HashMap<>();
-
-        Set<String> restaurantCodes = user.getRestaurants().stream()
-                .map(Restaurant::getCode)
-                .collect(Collectors.toSet());
-
-        claims.put(RESTAURANT_CODES.getValue(), String.join(",", restaurantCodes));
-        
+        Map<String, Object> claims = CookieUtil.buildClaims(user);
         String accessToken = jwtService.generateToken(INTERNAL, user.getUsername(), claims, true);
         String refreshToken = jwtService.generateToken(INTERNAL, user.getUsername(), claims, false);
-        setAuthCookies(response, accessToken, refreshToken);
+        CookieUtil.setAuthCookies(response, accessToken, refreshToken, accessTokenTtl, refreshTokenTtl);
     }
 
     @Override
     public void refreshToken(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = extractRefreshTokenFromCookie(request);
+        String refreshToken = CookieUtil.extractRefreshTokenFromCookie(request);
 
         String username = jwtService.extractUsername(refreshToken);
         if (!jwtService.isTokenValid(refreshToken, username)) {
@@ -81,22 +90,14 @@ public class InternalAuthServiceImpl implements InternalAuthService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        Map<String, Object> claims = new HashMap<>();
-
-        Set<String> restaurantCodes = user.getRestaurants().stream()
-                .map(Restaurant::getCode)
-                .collect(Collectors.toSet());
-
-        claims.put(RESTAURANT_CODES.getValue(), String.join(",", restaurantCodes));
-
-
+        Map<String, Object> claims = CookieUtil.buildClaims(user);
         String newAccessToken = jwtService.generateToken(INTERNAL, username, claims, true);
-        setAuthCookies(response, newAccessToken, refreshToken);
+        CookieUtil.setAuthCookies(response, newAccessToken, refreshToken, accessTokenTtl, refreshTokenTtl);
     }
 
     @Override
     public void rotateToken(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = extractRefreshTokenFromCookie(request);
+        String refreshToken = CookieUtil.extractRefreshTokenFromCookie(request);
 
         String username = jwtService.extractUsername(refreshToken);
         if (!jwtService.isTokenValid(refreshToken, username)) {
@@ -106,58 +107,15 @@ public class InternalAuthServiceImpl implements InternalAuthService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        Map<String, Object> claims = new HashMap<>();
-
-        Set<String> restaurantCodes = user.getRestaurants().stream()
-                .map(Restaurant::getCode)
-                .collect(Collectors.toSet());
-
-        claims.put(RESTAURANT_CODES.getValue(), String.join(",", restaurantCodes));
-
+        Map<String, Object> claims = CookieUtil.buildClaims(user);
         String newAccessToken = jwtService.generateToken(INTERNAL, username, claims, true);
         String newRefreshToken = jwtService.generateToken(INTERNAL, username, claims, false);
-        setAuthCookies(response, newAccessToken, newRefreshToken);
+        CookieUtil.setAuthCookies(response, newAccessToken, newRefreshToken, accessTokenTtl, refreshTokenTtl);
     }
 
     @Override
     public void revokeToken(HttpServletResponse response) {
-        clearAuthCookies(response);
-    }
-
-    private String extractRefreshTokenFromCookie(HttpServletRequest request) {
-        if (isNull(request.getCookies())) {
-            throw new IllegalStateException("No cookies present");
-        }
-
-        return Arrays.stream(request.getCookies())
-                .filter(c -> REFRESH_TOKEN.getValue().equals(c.getName()))
-                .map(Cookie::getValue)
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Refresh token not found"));
-    }
-
-    private void setAuthCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        Duration accessTokenTtl = securityProperties.getInternal().getAccessTokenTtl();
-        Duration refreshTokenTtl = securityProperties.getInternal().getRefreshTokenTtl();
-        addCookie(response, ACCESS_TOKEN.getValue(), accessToken, accessTokenTtl);
-        addCookie(response, REFRESH_TOKEN.getValue(), refreshToken, refreshTokenTtl);
-    }
-
-    private void clearAuthCookies(HttpServletResponse response) {
-        addCookie(response, ACCESS_TOKEN.getValue(), null, Duration.ZERO);
-        addCookie(response, REFRESH_TOKEN.getValue(), null, Duration.ZERO);
-    }
-
-    private void addCookie(HttpServletResponse response, String name, String value, Duration maxAge) {
-        ResponseCookie cookie = ResponseCookie.from(name, isNull(value) ? "" : value)
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("Strict")
-                .path("/")
-                .maxAge(maxAge)
-                .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        CookieUtil.clearAuthCookies(response);
     }
 
 }

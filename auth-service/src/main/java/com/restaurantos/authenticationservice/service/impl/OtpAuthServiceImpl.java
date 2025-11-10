@@ -2,10 +2,12 @@ package com.restaurantos.authenticationservice.service.impl;
 
 import com.restaurantos.authenticationservice.dto.AuthRequest;
 import com.restaurantos.authenticationservice.service.OtpAuthService;
+import com.restaurantos.authenticationservice.util.CookieUtil;
 import com.restaurantos.coresecurity.config.SecurityProperties;
 import com.restaurantos.coresecurity.service.JwtService;
 import com.restaurantos.userservice.model.User;
 import com.restaurantos.userservice.repository.UserRepository;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +17,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Map;
 
 import static com.restaurantos.coresecurity.enums.AuthType.OTP;
 import static com.restaurantos.coresecurity.enums.CookieName.ACCESS_TOKEN;
@@ -31,6 +34,16 @@ public class OtpAuthServiceImpl implements OtpAuthService {
 
     @Autowired
     private JwtService jwtService;
+
+    private Duration accessTokenTtl;
+
+    private Duration refreshTokenTtl;
+
+    @PostConstruct
+    public void init() {
+        accessTokenTtl = securityProperties.getOtp().getAccessTokenTtl();
+        refreshTokenTtl = securityProperties.getOtp().getRefreshTokenTtl();
+    }
 
     @Override
     public void sendOtp(String username) {
@@ -50,25 +63,10 @@ public class OtpAuthServiceImpl implements OtpAuthService {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        String accessToken = jwtService.generateToken(OTP, user.getUsername(), null, true);
-        String refreshToken = jwtService.generateToken(OTP, user.getUsername(), null, false);
-
-        Duration accessTokenTtl = securityProperties.getOtp().getAccessTokenTtl();
-        Duration refreshTokenTtl = securityProperties.getOtp().getRefreshTokenTtl();
-
-        addCookie(response, ACCESS_TOKEN.getValue(), accessToken, accessTokenTtl);
-        addCookie(response, REFRESH_TOKEN.getValue(), refreshToken, refreshTokenTtl);
-    }
-
-    private void addCookie(HttpServletResponse response, String name, String value, Duration maxAge) {
-        ResponseCookie cookie = ResponseCookie.from(name, value == null ? "" : value)
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("Strict")
-                .path("/")
-                .maxAge(maxAge)
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        Map<String, Object> claims = CookieUtil.buildClaims(user);
+        String accessToken = jwtService.generateToken(OTP, user.getUsername(), claims, true);
+        String refreshToken = jwtService.generateToken(OTP, user.getUsername(), claims, false);
+        CookieUtil.setAuthCookies(response, accessToken, refreshToken, accessTokenTtl, refreshTokenTtl);
     }
 }
 

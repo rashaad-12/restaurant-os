@@ -1,69 +1,64 @@
 package com.restaurantos.userservice.model;
 
+import com.restaurantos.userservice.enums.EntityStatus;
 import com.restaurantos.userservice.enums.UserRole;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
-
-import java.util.HashSet;
 import java.util.Set;
 
-@Entity
-@Table(name="user")
+import static com.restaurantos.userservice.enums.EntityStatus.ACTIVE;
+import static com.restaurantos.userservice.enums.EntityStatus.ARCHIVED;
+import static com.restaurantos.userservice.enums.EntityStatus.SUSPENDED;
+
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Document(collection = "users")
 public class User implements UserDetails {
 
     @Id
-    @GeneratedValue(strategy= GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column
     private String username;
 
-    @Column
     private String password;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @Enumerated(EnumType.STRING)
+    private String firstName;
+
+    private String lastName;
+
     private Set<UserRole> roles;
 
-    @ManyToMany
-    @JoinTable(
-            name = "user_restaurants",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "restaurant_id")
-    )
-    private Set<Restaurant> restaurants = new HashSet<>();
-
-    @Column
     private String oauthProvider;
 
-    @Column
-    private boolean enabled = true;
+    private Set<String> restaurantCodes;
+
+    private Set<String> restaurantGroups;
+
+    private EntityStatus status;
+
+    private String createdBy;
+
+    @CreatedDate
+    private LocalDateTime createDttm;
+
+    @LastModifiedDate
+    private LocalDateTime updateDttm;
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -72,16 +67,21 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return UserDetails.super.isAccountNonExpired();
+        return !ARCHIVED.equals(status);
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return UserDetails.super.isAccountNonLocked();
+        return !SUSPENDED.equals(status);
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return UserDetails.super.isCredentialsNonExpired();
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return ACTIVE.equals(status);
     }
 }

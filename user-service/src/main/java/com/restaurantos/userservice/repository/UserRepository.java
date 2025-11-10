@@ -1,27 +1,21 @@
 package com.restaurantos.userservice.repository;
 
 import com.restaurantos.userservice.model.User;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
-public interface UserRepository extends JpaRepository<User, Long> {
+@Repository
+public interface UserRepository extends MongoRepository<User, String> {
 
     Optional<User> findByUsername(String username);
 
-    boolean existsByUsername(String username);
+    List<User> findByRestaurantCodesIn(Set<String> restaurantCodes);
 
-    @Query(
-            value = "SELECT u.* FROM users u " +
-                    "JOIN user_restaurants ur ON u.id = ur.user_id " +
-                    "JOIN restaurants r ON r.id = ur.restaurant_id " +
-                    "WHERE r.code = :code",
-            nativeQuery = true
-    )
-    List<User> findUsersByRestaurant(@Param("code") String code);
+    void deleteByUsername(String username);
 
 }
 

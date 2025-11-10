@@ -35,8 +35,8 @@ public class MenuController {
         return ResponseEntity.ok(menuService.getMenuById(id));
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<List<MenuDTO>> getMenu(@RestaurantCodes Set<String> restaurantCodes) {
+    @GetMapping("/getAll")
+    public ResponseEntity<List<MenuDTO>> getAllMenu(@RestaurantCodes Set<String> restaurantCodes) {
         return ResponseEntity.ok(menuService.getMenuByRestaurant(restaurantCodes));
     }
 
@@ -50,12 +50,12 @@ public class MenuController {
         return ResponseEntity.ok(menuService.updateMenu(request));
     }
 
-    @PatchMapping("/publishMenu")
+    @PatchMapping("/publish")
     public ResponseEntity<String> publishMenu(@RequestBody List<MenuDTO> request) {
         return ResponseEntity.ok(menuService.publishMenu(request));
     }
 
-    @PatchMapping("/archiveMenu")
+    @PatchMapping("/archive")
     public ResponseEntity<String> archiveMenu(@RequestBody List<MenuDTO> request) {
         return ResponseEntity.ok(menuService.archiveMenu(request));
     }
