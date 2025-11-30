@@ -1,0 +1,45 @@
+[
+  {
+    "restaurantCode": "ZZZZ",
+    "code": "LMSI-001",
+    "name": "The Company Lunch Menu",
+    "description": "Lunch menu featuring our most popular dishes.",
+    "status": "DRAFT",
+    "publishDttm": null,
+    "createDttm": "2025-11-06 10:30",
+    "updateDttm": "2025-11-06 10:30",
+    "items": [
+      {
+        "code": "ZZZZ-MGPZ",
+        "name": "Margherita Pizza",
+        "description": "Classic pizza with tomatoes, mozzarella, and basil.",
+        "price": 349.0,
+        "available": true,
+        "category": "Main Course",
+        "tags": [
+          "vegetarian",
+          "popular",
+          "italian"
+        ],
+        "type": "VARIANT",
+        "variants": [
+          {
+            "name": "Extra Large",
+            "priceDelta": 120.0,
+            "available": true
+          },
+          {
+            "name": "Medium",
+            "priceDelta": 60.0,
+            "available": true
+          },
+          {
+            "name": "Large",
+            "priceDelta": 120.0,
+            "available": true
+          }
+        ]
+      }
+    ]
+  }
+]

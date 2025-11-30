@@ -17,6 +17,6 @@ public class MenuItemVariantDTO {
 
     private BigDecimal priceDelta;
 
-    private boolean available;
+    private Boolean available;
 
 }

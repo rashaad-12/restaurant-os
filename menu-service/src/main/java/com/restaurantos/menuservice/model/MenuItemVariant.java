@@ -13,11 +13,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class MenuItemVariant {
 
-    private String id;
-
     private String name;
 
     private BigDecimal priceDelta;
 
-    private boolean available;
+    private Boolean available;
 }

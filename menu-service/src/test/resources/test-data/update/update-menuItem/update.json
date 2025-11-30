@@ -1,0 +1,60 @@
+[
+  {
+    "restaurantCode": "ZZZZ",
+    "code": "LMMU-001",
+    "items": [
+      {
+        "code": "ZZZZ-MGPZ",
+        "name": "Margherita Pizza - Updated",
+        "description": "Classic pizza with tomatoes, mozzarella, and basil. - Updated",
+        "price": 249.0,
+        "available": true,
+        "category": "Main Course",
+        "tags": [
+          "vegetarian",
+          "popular",
+          "italian",
+          "updated"
+        ],
+        "type": "VARIANT",
+        "variants": [
+          {
+            "name": "Extra Small",
+            "priceDelta": -100.0,
+            "available": true
+          },
+          {
+            "name": "Medium",
+            "priceDelta": 60.0,
+            "available": true
+          },
+          {
+            "name": "Large",
+            "priceDelta": 120.0,
+            "available": true
+          }
+        ]
+      },
+      {
+        "code": "ZZZZ-VMCO",
+        "name": "Veg Meal Combo",
+        "description": "Includes Paneer Butter Masala, Naan, Rice, and Dessert.",
+        "price": 499.0,
+        "available": true,
+        "category": "Combo",
+        "tags": [
+          "vegetarian",
+          "combo",
+          "meal"
+        ],
+        "type": "COMBO",
+        "comboItems": [
+          "Paneer Butter Masala",
+          "Butter Naan",
+          "Jeera Rice",
+          "Gulab Jamun"
+        ]
+      }
+    ]
+  }
+]

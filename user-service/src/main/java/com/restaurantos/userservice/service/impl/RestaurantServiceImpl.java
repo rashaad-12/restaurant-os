@@ -10,6 +10,7 @@ import com.restaurantos.userservice.repository.RestaurantRepository;
 import com.restaurantos.userservice.repository.UserRepository;
 import com.restaurantos.userservice.service.RestaurantService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ import static com.restaurantos.userservice.enums.UserRole.ADMIN;
 import static com.restaurantos.userservice.enums.UserRole.OWNER;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 
+@Service
 public class RestaurantServiceImpl implements RestaurantService {
 
     @Autowired

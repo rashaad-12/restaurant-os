@@ -1,0 +1,68 @@
+[
+  {
+    "restaurantCode": "ZZZZ",
+    "code": "LMMU-001",
+    "name": "The Company Breakfast Menu",
+    "description": "Breakfast menu featuring our most popular dishes.",
+    "status": "DRAFT",
+    "items": [
+      {
+        "code": "ZZZZ-MINW",
+        "name": "Water",
+        "description": "Bottled water.",
+        "price": 100.0,
+        "available": false,
+        "category": "Beverage",
+        "tags": [
+          "cold",
+          "drink"
+        ],
+        "type": "REGULAR"
+      }
+    ]
+  },
+  {
+    "restaurantCode": "ZZZZ",
+    "code": "LMMU-002",
+    "name": "The Company Lunch Menu",
+    "description": "Lunch menu featuring our most popular dishes.",
+    "status": "DRAFT",
+    "items": [
+      {
+        "code": "ZZZZ-MINW",
+        "name": "Water",
+        "description": "Bottled water.",
+        "price": 100.0,
+        "available": false,
+        "category": "Beverage",
+        "tags": [
+          "cold",
+          "drink"
+        ],
+        "type": "REGULAR"
+      }
+    ]
+  },
+  {
+    "restaurantCode": "ZZZZ",
+    "code": "LMMU-003",
+    "name": "The Company Dinner Menu",
+    "description": "Dinner menu featuring our most popular dishes.",
+    "status": "PUBLISHED",
+    "items": [
+      {
+        "code": "ZZZZ-MINW",
+        "name": "Water",
+        "description": "Bottled water.",
+        "price": 100.0,
+        "available": false,
+        "category": "Beverage",
+        "tags": [
+          "cold",
+          "drink"
+        ],
+        "type": "REGULAR"
+      }
+    ]
+  }
+]

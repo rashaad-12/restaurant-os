@@ -1,0 +1,15 @@
+[
+  {
+    "restaurantCode": "ZZZZ",
+    "code": "LMSI-001",
+    "name": "The Company Lunch Menu",
+    "description": "Lunch menu featuring our most popular dishes.",
+    "status": "DRAFT",
+    "items": [
+      {
+        "code": "ZZZZ-MGPZ",
+        "price": 250.0
+      }
+    ]
+  }
+]

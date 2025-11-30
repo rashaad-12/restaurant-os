@@ -1,7 +1,7 @@
 spring:
   data:
     mongodb:
-      uri: mongodb://dev:dev@localhost:27018/user_db?authSource=admin
+      uri: mongodb://dev:dev@localhost:27019/user_db?authSource=admin
   devtools:
     restart:
       enabled: true
@@ -9,7 +9,7 @@ spring:
       enabled: true
 
 server:
-  port: 8082
+  port: 8181
 
 logging:
   level:

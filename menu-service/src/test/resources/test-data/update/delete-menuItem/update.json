@@ -1,0 +1,69 @@
+[
+  {
+    "restaurantCode": "ZZZZ",
+    "code": "LMMU-001",
+    "items": [
+      {
+        "code": "ZZZZ-MGPZ",
+        "name": "Margherita Pizza",
+        "description": "Classic pizza with tomatoes, mozzarella, and basil.",
+        "price": 349.0,
+        "available": true,
+        "category": "Main Course",
+        "tags": [
+          "vegetarian",
+          "popular",
+          "italian"
+        ],
+        "type": "VARIANT",
+        "variants": [
+          {
+            "name": "Medium",
+            "priceDelta": 60.0,
+            "available": true
+          },
+          {
+            "name": "Large",
+            "priceDelta": 120.0,
+            "available": true
+          }
+        ],
+        "markedForDeletion": true
+      },
+      {
+        "code": "ZZZZ-VMCO",
+        "name": "Veg Meal Combo",
+        "description": "Includes Paneer Butter Masala, Naan, Rice, and Dessert.",
+        "price": 499.0,
+        "available": true,
+        "category": "Combo",
+        "tags": [
+          "vegetarian",
+          "combo",
+          "meal"
+        ],
+        "type": "COMBO",
+        "comboItems": [
+          "Paneer Butter Masala",
+          "Butter Naan",
+          "Jeera Rice",
+          "Gulab Jamun"
+        ],
+        "markedForDeletion": true
+      },
+      {
+        "code": "ZZZZ-MINW",
+        "name": "Water",
+        "description": "Bottled water.",
+        "price": 100.0,
+        "available": false,
+        "category": "Beverage",
+        "tags": [
+          "cold",
+          "drink"
+        ],
+        "type": "REGULAR"
+      }
+    ]
+  }
+]

@@ -1,0 +1,27 @@
+[
+  {
+    "restaurantCode": "ZZZZ",
+    "code": "LMSI-001",
+    "name": "The Company Lunch Menu",
+    "description": "Lunch menu featuring our most popular dishes.",
+    "status": "PUBLISHED",
+    "publishDttm": "2025-11-06 10:30",
+    "createDttm": "2025-11-06 10:30",
+    "updateDttm": "2025-11-06 10:30",
+    "items": [
+      {
+        "code": "ZZZZ-MINW",
+        "name": "Water",
+        "description": "Bottled water.",
+        "price": 100.0,
+        "available": false,
+        "category": "Beverage",
+        "tags": [
+          "cold",
+          "drink"
+        ],
+        "type": "REGULAR"
+      }
+    ]
+  }
+]

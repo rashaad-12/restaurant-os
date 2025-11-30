@@ -1,0 +1,16 @@
+[
+  {
+    "restaurantCode": "ZZZZ",
+    "code": "LMSI-001",
+    "items": [
+      {
+        "code": "ZZZZ-VMCO",
+        "comboItems": [
+          "ZZZZ-VMCO",
+          "ZZZZ-GJAM",
+          "ZZZZ-BUCA"
+        ]
+      }
+    ]
+  }
+]

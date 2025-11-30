@@ -1,0 +1,24 @@
+[
+  {
+    "restaurantCode": "ZZZZ",
+    "code": "LMMU-001",
+    "name": "Lunch Menu",
+    "description": "Lunch menu with our most popular dishes.",
+    "status": "DRAFT",
+    "items": [
+      {
+        "code": "ZZZZ-MINW",
+        "name": "Water",
+        "description": "Bottled water.",
+        "price": 100.0,
+        "available": false,
+        "category": "Beverage",
+        "tags": [
+          "cold",
+          "drink"
+        ],
+        "type": "REGULAR"
+      }
+    ]
+  }
+]

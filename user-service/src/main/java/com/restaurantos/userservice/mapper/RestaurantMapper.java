@@ -19,7 +19,7 @@ import static java.util.Objects.nonNull;
 public interface RestaurantMapper {
 
     @Mapping(target = "id", expression = "java(generateId())")
-    @Mapping(target = "status", expression = "java(toStatusOrDefault(request.getStatus()))")
+    @Mapping(target = "status", expression = "java(toStatusOrDefault(dto.getStatus()))")
     Restaurant toEntity(RestaurantDTO dto);
 
     RestaurantDTO toDTO(Restaurant restaurant);
@@ -33,12 +33,8 @@ public interface RestaurantMapper {
         return UUID.randomUUID().toString();
     }
 
-    default EntityStatus toStatusOrDefault(String status) {
-        try {
-            return nonNull(status) ? EntityStatus.valueOf(status) : EntityStatus.PENDING_APPROVAL;
-        } catch (IllegalArgumentException e) {
-            return EntityStatus.PENDING_APPROVAL;
-        }
+    default EntityStatus toStatusOrDefault(EntityStatus status) {
+        return nonNull(status) ? status : EntityStatus.PENDING_APPROVAL;
     }
 
 }

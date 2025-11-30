@@ -1,0 +1,25 @@
+description = 'order service'
+
+dependencies {
+    implementation project(':core-security')
+
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.apache.commons:commons-lang3:3.18.0'
+    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+
+    runtimeOnly 'com.mysql:mysql-connector-j:9.3.0'
+
+    testImplementation 'org.testcontainers:mysql'
+
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+}
+
+tasks.named('bootJar') {
+    archiveBaseName.set('order-service')
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

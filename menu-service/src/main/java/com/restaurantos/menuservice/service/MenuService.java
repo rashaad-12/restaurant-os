@@ -11,6 +11,8 @@ public interface MenuService {
 
     MenuDTO getMenuById(String id);
 
+    MenuDTO getMenuByCodeAndRestaurantCode(String menuCode, String restaurantCode);
+
     List<MenuDTO> getMenuByRestaurant(Set<String> restaurantCodes);
 
     List<MenuDTO> getPublishedMenuByRestaurant(Set<String> restaurantCodes);

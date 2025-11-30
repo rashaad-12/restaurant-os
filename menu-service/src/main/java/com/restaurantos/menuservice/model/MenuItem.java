@@ -15,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 public class MenuItem {
 
-    private String id;
+    private String code;
 
     private String name;
 
@@ -23,7 +23,7 @@ public class MenuItem {
 
     private BigDecimal price;
 
-    private boolean available;
+    private Boolean available;
 
     private String category;
 

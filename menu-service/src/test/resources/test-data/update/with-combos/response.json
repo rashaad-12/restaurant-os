@@ -1,0 +1,33 @@
+[
+  {
+    "restaurantCode": "ZZZZ",
+    "code": "LMSI-001",
+    "name": "The Company Lunch Menu",
+    "description": "Lunch menu featuring our most popular dishes.",
+    "status": "DRAFT",
+    "publishDttm": null,
+    "createDttm": "2025-11-06 10:30",
+    "updateDttm": "2025-11-06 10:30",
+    "items": [
+      {
+        "code": "ZZZZ-VMCO",
+        "name": "Veg Meal Combo",
+        "description": "Includes Paneer Butter Masala, Naan, Rice, and Dessert.",
+        "price": 499.0,
+        "available": true,
+        "category": "Combo",
+        "tags": [
+          "vegetarian",
+          "combo",
+          "meal"
+        ],
+        "type": "COMBO",
+        "comboItems": [
+          "ZZZZ-VMCO",
+          "ZZZZ-GJAM",
+          "ZZZZ-BUCA"
+        ]
+      }
+    ]
+  }
+]

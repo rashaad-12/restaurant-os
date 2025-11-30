@@ -44,7 +44,7 @@ public class RestaurantController {
         return ResponseEntity.ok(restaurantService.updateRestaurant(request));
     }
 
-    @PatchMapping("/publish")
+    @PatchMapping("/approve")
     public ResponseEntity<String> approveRestaurant(@RequestBody List<RestaurantDTO> request) {
         return ResponseEntity.ok(restaurantService.approveRestaurant(request));
     }

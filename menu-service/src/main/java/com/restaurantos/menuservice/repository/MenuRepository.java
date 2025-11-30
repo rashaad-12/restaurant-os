@@ -16,8 +16,8 @@ public interface MenuRepository extends MongoRepository<Menu, String> {
 
     List<Menu> findByRestaurantCodeInAndStatus(Set<String> restaurantCodes, MenuStatus status);
 
-    Optional<Menu> findByNameAndRestaurantCode(String name, String restaurantCode);
+    Optional<Menu> findByCodeAndRestaurantCode(String menuCode, String restaurantCode);
 
-    void deleteByNameAndRestaurantCode(String name, String restaurantCode);
+    void deleteByCodeAndRestaurantCode(String menuCode, String restaurantCode);
 
 }
