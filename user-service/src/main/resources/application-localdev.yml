@@ -1,4 +1,9 @@
+server:
+  port: 8182
+
 spring:
+  application:
+      name: user-service
   data:
     mongodb:
       uri: mongodb://dev:dev@localhost:27019/user_db?authSource=admin
@@ -7,9 +12,6 @@ spring:
       enabled: true
     livereload:
       enabled: true
-
-server:
-  port: 8181
 
 logging:
   level:

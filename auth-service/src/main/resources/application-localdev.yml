@@ -1,3 +1,6 @@
+server:
+  port: 8181
+
 spring:
   application:
     name: auth-service
@@ -9,9 +12,6 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-
-server:
-  port: 8180
 
 logging:
   level:

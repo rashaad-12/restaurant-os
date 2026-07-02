@@ -44,20 +44,9 @@ public class JwtServiceImpl implements JwtService {
     @Autowired
     private SecurityProperties jwtProperties;
 
-    private final Map<AuthType, SecurityProperties.JwtProperties> jwtConfigs = new EnumMap<>(AuthType.class);
-
-    @PostConstruct
-    public void init() {
-        if (nonNull(jwtProperties)) {
-            if (nonNull(jwtProperties.getInternal())) jwtConfigs.put(AuthType.INTERNAL, jwtProperties.getInternal());
-            if (nonNull(jwtProperties.getCustomer())) jwtConfigs.put(AuthType.CUSTOMER, jwtProperties.getCustomer());
-            if (nonNull(jwtProperties.getOtp())) jwtConfigs.put(AuthType.OTP, jwtProperties.getOtp());
-        }
-    }
-
     @Override
     public String generateToken(AuthType authType, String username, Map<String, Object> claims, boolean refreshToken) {
-        SecurityProperties.JwtProperties config = jwtConfigs.get(authType);
+        SecurityProperties.JwtProperties config = jwtProperties.get(authType);
 
         long ttl = (refreshToken ? config.getRefreshTokenTtl() : config.getAccessTokenTtl()).toMillis();
         long now = System.currentTimeMillis();
@@ -136,10 +125,7 @@ public class JwtServiceImpl implements JwtService {
             AuthType authType = parseAuthType(authTypeName);
 
             if (nonNull(authType)) {
-                SecurityProperties.JwtProperties config = jwtConfigs.get(authType);
-                if (nonNull(config)) {
-                    return parseJwtWithKey(token, config.getSigningKey());
-                }
+                return parseJwtWithKey(token, jwtProperties.get(authType).getSigningKey());
             }
 
             return parseJwtWithAllKeys(token);
@@ -183,9 +169,9 @@ public class JwtServiceImpl implements JwtService {
     }
 
     private Claims parseJwtWithAllKeys(String token) {
-        for (SecurityProperties.JwtProperties config : jwtConfigs.values()) {
+        for (AuthType type : AuthType.values()) {
             try {
-                return parseJwtWithKey(token, config.getSigningKey());
+                return parseJwtWithKey(token, jwtProperties.get(type).getSigningKey());
             } catch (JwtException ignored) { }
         }
         throw new JwtException("Unable to parse JWT with any known signing key");

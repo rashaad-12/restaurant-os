@@ -18,6 +18,7 @@ import static java.util.Objects.nonNull;
 public interface MenuMapper {
 
     @Mapping(target = "status", expression = "java(toStatusOrDefault(request.getStatus()))")
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "publishDttm", ignore = true)
     Menu toEntity(MenuDTO request);
 

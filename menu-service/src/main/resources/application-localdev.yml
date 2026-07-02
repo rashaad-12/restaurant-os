@@ -1,4 +1,9 @@
+server:
+  port: 8183
+
 spring:
+  application:
+    name: menu-service
   data:
     mongodb:
       uri: mongodb://dev:dev@localhost:27018/menu_db?authSource=admin
@@ -8,9 +13,6 @@ spring:
       enabled: true
     livereload:
       enabled: true
-
-server:
-  port: 8182
 
 logging:
   level:

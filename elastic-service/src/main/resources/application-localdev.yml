@@ -1,0 +1,15 @@
+server:
+  port: 8185
+
+spring:
+  application:
+    name: elastic-service
+
+elasticsearch:
+  scheme: http
+  host: localhost
+  port: 9200
+  username: admin
+  password: password
+  connectionTimeout: 20
+  socketTimeout: 60

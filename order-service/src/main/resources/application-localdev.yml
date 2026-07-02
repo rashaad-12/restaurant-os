@@ -1,4 +1,9 @@
+server:
+  port: 8184
+
 spring:
+  application:
+    name: order-service
   datasource:
     url: jdbc:mysql://localhost:3308/order_db
     username: dev
@@ -15,9 +20,6 @@ spring:
       enabled: true
     livereload:
       enabled: true
-
-server:
-  port: 8183
 
 logging:
   level:
