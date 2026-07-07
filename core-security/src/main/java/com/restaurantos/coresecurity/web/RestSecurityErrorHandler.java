@@ -11,11 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-/**
- * Renders authentication (401) and authorization (403) failures as JSON instead
- * of Spring's default HTML/empty body, so API clients get a consistent error
- * shape. Single component implementing both Spring hooks.
- */
 @Component
 public class RestSecurityErrorHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 

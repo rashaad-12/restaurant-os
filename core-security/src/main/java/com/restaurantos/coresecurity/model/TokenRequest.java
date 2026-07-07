@@ -6,12 +6,6 @@ import lombok.Getter;
 
 import java.util.Set;
 
-/**
- * Domain-neutral input for minting a token. Callers (e.g. auth-service) adapt
- * their own user model into this so core-security never depends on any service's
- * domain classes. {@code roles} are canonical names without the {@code ROLE_}
- * prefix.
- */
 @Getter
 @AllArgsConstructor
 public class TokenRequest {

@@ -14,33 +14,20 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Central JWT / security configuration, bound from {@code app.security.jwt.*}.
- *
- * <p>Every value has a production-safe default so a verifying service needs
- * <em>no</em> JWT configuration at all — the public key ships on the classpath
- * inside the core-security jar. Only the issuer (auth-service) sets
- * {@code private-key}; only edge/browser-facing services need {@code cors}.
- */
 @Getter
 @Setter
 @Component
 @ConfigurationProperties(prefix = "app.security.jwt")
 public class SecurityProperties {
 
-    /** Expected {@code iss} claim; validated on every token. Must match across all services. */
     private String issuer = "restaurant-os";
 
-    /** RSA public key used to verify tokens. Defaults to the key bundled in core-security. */
     private String publicKey = "classpath:keys/app_public.pem";
 
-    /** RSA private key used to sign tokens. Only configured on the issuing service (auth-service). */
     private String privateKey;
 
-    /** Tolerated clock difference between issuer and verifier when checking expiry. */
     private Duration clockSkew = Duration.ofSeconds(30);
 
-    /** Per-audience token lifetimes (only consulted by the issuing service). */
     private final Map<Audience, TokenTtl> ttl = new EnumMap<>(Audience.class);
 
     private final Cookie cookie = new Cookie();
@@ -69,7 +56,6 @@ public class SecurityProperties {
     @Getter
     @Setter
     public static class Cookie {
-        /** Send cookies only over HTTPS. Keep true everywhere except local HTTP dev. */
         private boolean secure = true;
         private String sameSite = "Strict";
         private String path = "/";

@@ -1,0 +1,54 @@
+server:
+  port: ${SERVER_PORT:8181}
+
+spring:
+  application:
+    name: identity-service
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.security: INFO
+
+app:
+  security:
+    jwt:
+      issuer: ${JWT_ISSUER:restaurant-os}
+      private-key: ${APP_SECURITY_JWT_PRIVATE_KEY}
+      public-key: ${APP_SECURITY_JWT_PUBLIC_KEY}
+      clock-skew: ${JWT_CLOCK_SKEW:PT30S}
+      cookie:
+        secure: ${COOKIE_SECURE:true}
+        same-site: ${COOKIE_SAME_SITE:Strict}
+        domain: ${COOKIE_DOMAIN:}
+      cors:
+        enabled: ${CORS_ENABLED:false}
+        allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+  # ---------------------------------------------------------------------------
+  # OAuth / OIDC providers whose ID tokens the CUSTOMER and PARTNER flows verify.
+  # `audiences` are our registered client IDs (comma-separated: web,ios,android)
+  # and are checked against the token's `aud`. Set them per environment.
+  # ---------------------------------------------------------------------------
+  oauth:
+    provisioning:
+      enabled: ${OAUTH_PROVISIONING_ENABLED:false}
+    providers:
+      google:
+        issuer: https://accounts.google.com
+        audiences: ${GOOGLE_CLIENT_IDS:}
+      apple:
+        issuer: https://appleid.apple.com
+        audiences: ${APPLE_CLIENT_IDS:}

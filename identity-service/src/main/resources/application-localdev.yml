@@ -1,0 +1,30 @@
+server:
+  port: 8181
+
+spring:
+  application:
+    name: identity-service
+  data:
+    mongodb:
+      uri: mongodb://dev:dev@localhost:27019/user_db?authSource=admin
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
+logging:
+  level:
+    com.restaurantos.identityservice: DEBUG
+    org.springframework.security: DEBUG
+    com.restaurantos.coresecurity: DEBUG
+
+app:
+  security:
+    jwt:
+      issuer: restaurant-os
+      private-key: classpath:keys/app_private.pem
+      public-key: classpath:keys/app_public.pem
+      cookie:
+        secure: false
+        same-site: Lax

@@ -25,12 +25,6 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
-/**
- * Verifies the request's JWT once and, if valid, populates the SecurityContext
- * with an {@link AuthenticatedUser} principal. Only ACCESS tokens authenticate a
- * request; refresh tokens are rejected here so they cannot be replayed as
- * bearer credentials. Revoked tokens are denied via {@link TokenRevocationChecker}.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

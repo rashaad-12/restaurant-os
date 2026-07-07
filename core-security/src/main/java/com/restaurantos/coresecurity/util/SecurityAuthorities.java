@@ -8,11 +8,6 @@ import java.util.stream.Collectors;
 
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 
-/**
- * Maps canonical role names to Spring Security authorities, applying the
- * {@code ROLE_} prefix exactly once so {@code hasRole('MANAGER')} works
- * regardless of whether the stored claim was prefixed.
- */
 public final class SecurityAuthorities {
 
     private static final String ROLE_PREFIX = "ROLE_";

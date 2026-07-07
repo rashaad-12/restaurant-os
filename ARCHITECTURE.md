@@ -34,11 +34,10 @@
                          │   (No API gateway / discovery / config yet)   │
                          └──────────────────────────────────────────────┘
 
-   auth-service          user-service        menu-service       order-service
-   (MySQL: auth_db)      (Mongo: user_db)    (Mongo: menu_db)   (MySQL: order_db)
-        │  ▲                   ▲
-        │  │ imports           │  ← auth-service depends on :user-service
-        └──┴───────────────────┘     and queries user_db DIRECTLY (shared DB)
+   identity-service               menu-service       order-service
+   (Mongo: user_db)               (Mongo: menu_db)   (MySQL: order_db)
+   auth + user/restaurant domain
+   ← former auth-service + user-service, merged (one owner of user_db)
 
    elastic-service (partial)   ──►  Elasticsearch 9.2 + Kibana
 
@@ -90,7 +89,7 @@ Severity: 🔴 critical · 🟠 major · 🟡 minor
 
 | # | Sev | Finding | Location |
 |---|---|---|---|
-| 1 | 🔴 | **Shared database across services.** `auth-service` declares `implementation project(':user-service')` and uses `UserRepository`/`User` to read `user_db` directly. Two services own the same datastore — this defeats microservice autonomy and couples deployments. | `auth-service/build.gradle`, `*AuthServiceImpl.java` |
+| 1 | ✅ | **~~Shared database across services.~~** *Resolved:* `auth-service` and `user-service` are merged into **`identity-service`**, a single owner of `user_db`. The cross-service `project(':user-service')` dependency is gone; the `UserRepository`/`User` access is now in-process within one module. | `identity-service/` |
 | 2 | 🔴 | **No authorization enforcement.** `@EnableMethodSecurity` is on and roles are decoded into authorities, but there is **not a single `@PreAuthorize`/`hasRole`** anywhere. The chain is only `.anyRequest().authenticated()`, so *any* authenticated user can create/delete users, menus, and orders for *any* restaurant. | `SecurityConfig.java`, all controllers |
 | 3 | 🔴 | **Committed secrets.** JWT signing secrets live in `application-localdev.yml` (and are duplicated in every service's yml). DB credentials (`dev/dev`, `root`) are in `docker-compose.yml`. | `*/application-localdev.yml`, `docker-compose.yml` |
 | 4 | 🔴 | **Access/refresh token TTLs are inverted.** All three auth impls call `generateToken(..., true)` (refresh flag → **refresh** TTL) and assign the result to the **access** token, and `false` (access TTL) to the **refresh** token. Access tokens therefore live as long as refresh tokens and vice-versa. | `CustomerAuthServiceImpl`, `InternalAuthServiceImpl`, `OtpAuthServiceImpl` |
@@ -141,7 +140,7 @@ Concrete, low-risk changes that improve quality without changing architecture:
 4. **Finish or gate the stubbed auth flows** (#5): implement real OTP verification and OAuth token validation, or disable those endpoints until implemented.
 
 ### P1 — Service boundaries
-5. **Break the shared DB** (#1): give `auth-service` its own credential/identity store, or have it call `user-service` over HTTP (Feign/RestClient) via a published DTO contract — drop the `project(':user-service')` dependency.
+5. ✅ **~~Break the shared DB~~** (#1): *Done* — `auth-service` + `user-service` merged into `identity-service`, one owner of `user_db`. If the domains need to diverge again later, re-split behind an HTTP contract (see `identity-service/ARCHITECTURE.md` §7).
 6. **Introduce an API gateway** (Spring Cloud Gateway) for routing, CORS, rate limiting, and edge auth, plus **centralised config** (Spring Cloud Config / Kubernetes ConfigMaps).
 7. **Adopt an integration pattern** (#6): event-driven messaging (Kafka/RabbitMQ) for the order → kitchen → payment → notification lifecycle; define event schemas.
 
