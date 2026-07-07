@@ -11,7 +11,7 @@ public enum CookieName {
 
     REFRESH_TOKEN("refreshToken"),
 
-    AUTH_TYPE("authType"),
+    TOKEN_TYPE("tokenType"),
 
     RESTAURANT_CODES("restaurantCodes"),
 

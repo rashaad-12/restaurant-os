@@ -21,18 +21,6 @@ services:
       - "27019:27017"
     volumes:
       - user-data:/data/db
-  auth-db:
-    image: mysql:8.0
-    container_name: auth-db
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_USER: dev
-      MYSQL_PASSWORD: dev
-      MYSQL_DATABASE: auth_db
-    ports:
-      - "3307:3306"
-    volumes:
-      - auth-data:/var/lib/mysql
   order-db:
     image: mysql:8.0
     container_name: order-db
@@ -70,5 +58,4 @@ services:
 volumes:
   menu-data:
   user-data:
-  auth-data:
   order-data:

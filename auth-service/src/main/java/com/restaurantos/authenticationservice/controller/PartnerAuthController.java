@@ -9,17 +9,17 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import static com.restaurantos.coresecurity.enums.Audience.CUSTOMER;
+import static com.restaurantos.coresecurity.enums.Audience.PARTNER;
 
 @RestController
-@RequestMapping("auth-api/v1/auth/customer")
+@RequestMapping("auth-api/v1/auth/partner")
 @RequiredArgsConstructor
-public class CustomerAuthController {
+public class PartnerAuthController {
 
     private final OAuthService oauthService;
 
     @PostMapping("/login")
     public void login(@RequestBody AuthRequest request, HttpServletResponse response) {
-        oauthService.authenticate(request, CUSTOMER, response);
+        oauthService.authenticate(request, PARTNER, response);
     }
 }

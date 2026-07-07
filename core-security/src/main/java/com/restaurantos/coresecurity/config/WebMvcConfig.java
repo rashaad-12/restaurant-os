@@ -2,7 +2,7 @@ package com.restaurantos.coresecurity.config;
 
 import com.restaurantos.coresecurity.resolver.CurrentUserArgumentResolver;
 import com.restaurantos.coresecurity.resolver.RestaurantCodesArgumentResolver;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -10,13 +10,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import java.util.List;
 
 @Configuration
+@RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
 
-    @Autowired
-    private RestaurantCodesArgumentResolver restaurantCodesArgumentResolver;
+    private final RestaurantCodesArgumentResolver restaurantCodesArgumentResolver;
 
-    @Autowired
-    private CurrentUserArgumentResolver currentUserArgumentResolver;
+    private final CurrentUserArgumentResolver currentUserArgumentResolver;
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {

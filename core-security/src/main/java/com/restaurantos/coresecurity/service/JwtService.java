@@ -1,27 +1,18 @@
 package com.restaurantos.coresecurity.service;
 
-import com.restaurantos.coresecurity.enums.AuthType;
+import com.restaurantos.coresecurity.enums.TokenType;
+import com.restaurantos.coresecurity.exception.InvalidTokenException;
+import com.restaurantos.coresecurity.model.AuthenticatedUser;
+import com.restaurantos.coresecurity.model.TokenRequest;
 
-import java.util.Date;
-import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
+
 
 public interface JwtService {
 
-    String generateToken(AuthType authType, String user, Map<String, Object> claims, boolean refreshToken);
+    String issue(TokenRequest request, TokenType tokenType);
 
-    boolean isTokenValid(String token, String username);
+    AuthenticatedUser verify(String token);
 
-    Map<String, Object> extractAllClaims(String token);
-
-    String extractUsername(String token);
-
-    Set<String> extractRestaurantCodes(String token);
-
-    Date extractExpiration(String token);
-
-    Set<String> extractRoles(String token);
-
-    Object extractClaim(String token, String name);
-
+    Optional<AuthenticatedUser> tryVerify(String token);
 }

@@ -19,17 +19,3 @@ logging:
     org.springframework.security: DEBUG
     com.restaurantos.coresecurity: DEBUG
 
-app:
-  security:
-    jwt:
-      internal:
-        secret: "d1c140fcb059ac6cc10230279f6650784e892db911d0bd71549ac4fb8289f84e"
-        access-token-ttl: PT15M
-        refresh-token-ttl: P1D
-      customer:
-        secret: "e9t3pWc4m2x8v0h5s2Y7Z3gftk7571b9g6T2D4F8M1P7R0L3C5A9U2E7I4O6Y1T3"
-        access-token-ttl: PT30M
-        refresh-token-ttl: P7D
-      otp:
-        secret: "o9t3pWc4m2x8v0h5hs78mf30h4N8B1K9g6T2D4F8M1P7R0L3C5A9U2E7I4O6Y1T3"
-        access-token-ttl: PT60M

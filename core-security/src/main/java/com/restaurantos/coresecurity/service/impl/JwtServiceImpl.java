@@ -1,180 +1,134 @@
 package com.restaurantos.coresecurity.service.impl;
 
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restaurantos.coresecurity.config.SecurityProperties;
-import com.restaurantos.coresecurity.enums.AuthType;
+import com.restaurantos.coresecurity.enums.Audience;
+import com.restaurantos.coresecurity.enums.TokenType;
+import com.restaurantos.coresecurity.exception.InvalidTokenException;
+import com.restaurantos.coresecurity.model.AuthenticatedUser;
+import com.restaurantos.coresecurity.model.TokenRequest;
 import com.restaurantos.coresecurity.service.JwtService;
+import com.restaurantos.coresecurity.util.JwtTokenUtil;
+import com.restaurantos.coresecurity.util.KeyLoader;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.security.Key;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.Collections;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
-import static com.restaurantos.coresecurity.enums.CookieName.AUTH_TYPE;
 import static com.restaurantos.coresecurity.enums.CookieName.RESTAURANT_CODES;
 import static com.restaurantos.coresecurity.enums.CookieName.ROLES;
+import static com.restaurantos.coresecurity.enums.CookieName.TOKEN_TYPE;
+import static com.restaurantos.coresecurity.enums.TokenType.REFRESH;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.apache.commons.collections4.MapUtils.isNotEmpty;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class JwtServiceImpl implements JwtService {
 
-    @Autowired
-    ObjectMapper objectMapper;
+    private final SecurityProperties properties;
 
-    @Autowired
-    private SecurityProperties jwtProperties;
+    private java.security.interfaces.RSAPublicKey publicKey;
+    private java.security.interfaces.RSAPrivateKey privateKey;
+    private JwtParser parser;
+
+    @PostConstruct
+    void init() {
+        publicKey = KeyLoader.loadPublicKey(properties.getPublicKey());
+        if (isNotBlank(properties.getPrivateKey())) {
+            privateKey = KeyLoader.loadPrivateKey(properties.getPrivateKey());
+        }
+        parser = Jwts.parser()
+                .verifyWith(publicKey)
+                .requireIssuer(properties.getIssuer())
+                .clockSkewSeconds(properties.getClockSkew().toSeconds())
+                .build();
+        log.info("JwtService initialised (issuer={}, signing={})",
+                properties.getIssuer(), nonNull(privateKey) ? "enabled" : "verify-only");
+    }
 
     @Override
-    public String generateToken(AuthType authType, String username, Map<String, Object> claims, boolean refreshToken) {
-        SecurityProperties.JwtProperties config = jwtProperties.get(authType);
+    public String issue(TokenRequest request, TokenType tokenType) {
+        if (isNull(privateKey)) {
+            throw new IllegalStateException("This service is not configured with a signing key and cannot issue tokens");
+        }
 
-        long ttl = (refreshToken ? config.getRefreshTokenTtl() : config.getAccessTokenTtl()).toMillis();
-        long now = System.currentTimeMillis();
+        SecurityProperties.TokenTtl ttl = properties.ttlFor(request.getAudience());
+        Duration lifetime = (tokenType == REFRESH) ? ttl.getRefreshTokenTtl() : ttl.getAccessTokenTtl();
+        Instant now = Instant.now();
 
         JwtBuilder jwt = Jwts.builder()
-                .setSubject(username)
-                .setIssuedAt(new Date(now))
-                .claim(AUTH_TYPE.getValue(), authType.name())
-                .signWith(config.getSigningKey(), SignatureAlgorithm.HS256);
+                .issuer(properties.getIssuer())
+                .audience().add(request.getAudience().name()).and()
+                .subject(request.getUsername())
+                .id(UUID.randomUUID().toString())
+                .issuedAt(Date.from(now))
+                .claim(TOKEN_TYPE.getValue(), tokenType.name())
+                .claim(ROLES.getValue(), JwtTokenUtil.joinClaim(request.getRoles()))
+                .claim(RESTAURANT_CODES.getValue(), JwtTokenUtil.joinClaim(request.getRestaurantCodes()))
+                .signWith(privateKey, Jwts.SIG.RS256);
 
-        if (isNotEmpty(claims)) jwt.addClaims(claims);
-
-        if (ttl > 0) jwt.setExpiration(new Date(now + ttl));
+        if (nonNull(lifetime)) {
+            jwt.expiration(Date.from(now.plus(lifetime)));
+        }
 
         return jwt.compact();
     }
 
     @Override
-    public boolean isTokenValid(String token, String username) {
+    public AuthenticatedUser verify(String token) {
         try {
-            Claims claims = parseClaims(token);
-            return nonNull(claims.getSubject()) && claims.getSubject().equals(username) &&
-                    nonNull(claims.getExpiration()) && claims.getExpiration().after(new Date());
+            Claims claims = parser.parseSignedClaims(token).getPayload();
+            return new AuthenticatedUser(
+                    claims.getSubject(),
+                    JwtTokenUtil.splitClaim(asString(claims.get(ROLES.getValue()))),
+                    JwtTokenUtil.splitClaim(asString(claims.get(RESTAURANT_CODES.getValue()))),
+                    firstAudience(claims.getAudience()),
+                    toEnum(TokenType.class, asString(claims.get(TOKEN_TYPE.getValue()))),
+                    claims.getId());
         } catch (JwtException | IllegalArgumentException e) {
-            return false;
+            throw new InvalidTokenException("Token verification failed: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public Map<String, Object> extractAllClaims(String token) {
-        Claims claims = parseClaims(token);
-        return new HashMap<>(claims);
-    }
-
-    @Override
-    public String extractUsername(String token) {
-        return parseClaims(token).getSubject();
-    }
-
-    @Override
-    public Set<String> extractRestaurantCodes(String token) {
-        Claims claims = parseClaims(token);
-        Object restaurantCodesClaim = claims.get(RESTAURANT_CODES.getValue());
-
-        if (isNull(restaurantCodesClaim)) return Collections.emptySet();
-
-        return Set.of(restaurantCodesClaim.toString().split(","));
-    }
-
-    @Override
-    public Date extractExpiration(String token) {
-        return parseClaims(token).getExpiration();
-    }
-
-    @Override
-    public Set<String> extractRoles(String token) {
-        Claims claims = parseClaims(token);
-        Object rolesObj = claims.get(ROLES.getValue());
-        if (rolesObj instanceof Collection) {
-            return ((Collection<?>) rolesObj).stream()
-                    .map(Object::toString)
-                    .collect(Collectors.toSet());
-        }
-        return Collections.emptySet();
-    }
-
-    @Override
-    public Object extractClaim(String token, String name) {
-        Claims claims = parseClaims(token);
-        return claims.get(name);
-    }
-
-    private Claims parseClaims(String token) {
+    public Optional<AuthenticatedUser> tryVerify(String token) {
         try {
-            String authTypeName = extractAuthType(token);
-            AuthType authType = parseAuthType(authTypeName);
-
-            if (nonNull(authType)) {
-                return parseJwtWithKey(token, jwtProperties.get(authType).getSigningKey());
-            }
-
-            return parseJwtWithAllKeys(token);
-        } catch (Exception e) {
-            throw new JwtException("Unable to parse JWT", e);
+            return Optional.of(verify(token));
+        } catch (InvalidTokenException e) {
+            log.debug("Rejected token: {}", e.getMessage());
+            return Optional.empty();
         }
     }
 
-    private String extractAuthType(String token) {
-        if (isNull(token)) return null;
-
-        String[] parts = token.split("\\.");
-        if (parts.length < 2) return null;
-
-        try {
-            byte[] decoded = Base64.getUrlDecoder().decode(parts[1]);
-            JsonNode node = objectMapper.readTree(decoded);
-            JsonNode authTypeNode = node.get(AUTH_TYPE.getValue());
-            return (nonNull(authTypeNode) && authTypeNode.isTextual()) ? authTypeNode.asText() : null;
-        } catch (Exception ignored) {
-            return null;
-        }
+    private static Audience firstAudience(Set<String> audiences) {
+        if (isNull(audiences) || audiences.isEmpty()) return null;
+        return toEnum(Audience.class, audiences.iterator().next());
     }
 
-    private AuthType parseAuthType(String authTypeName) {
-        if (isNull(authTypeName)) return null;
+    private static String asString(Object value) {
+        return nonNull(value) ? value.toString() : null;
+    }
 
+    private static <E extends Enum<E>> E toEnum(Class<E> type, String value) {
+        if (isNull(value)) return null;
         try {
-            return AuthType.valueOf(authTypeName);
+            return Enum.valueOf(type, value);
         } catch (IllegalArgumentException e) {
             return null;
         }
     }
-
-    private Claims parseJwtWithKey(String token, Key key) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
-
-    private Claims parseJwtWithAllKeys(String token) {
-        for (AuthType type : AuthType.values()) {
-            try {
-                return parseJwtWithKey(token, jwtProperties.get(type).getSigningKey());
-            } catch (JwtException ignored) { }
-        }
-        throw new JwtException("Unable to parse JWT with any known signing key");
-    }
-
 }

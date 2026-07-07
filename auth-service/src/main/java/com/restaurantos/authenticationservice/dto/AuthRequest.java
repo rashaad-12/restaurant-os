@@ -1,6 +1,6 @@
 package com.restaurantos.authenticationservice.dto;
 
-import com.restaurantos.coresecurity.enums.AuthType;
+import com.restaurantos.coresecurity.enums.Audience;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,9 +9,7 @@ import lombok.Setter;
 
 import java.util.Set;
 
-import static com.restaurantos.coresecurity.enums.AuthType.CUSTOMER;
-import static com.restaurantos.coresecurity.enums.AuthType.INTERNAL;
-import static com.restaurantos.coresecurity.enums.AuthType.OTP;
+import static com.restaurantos.coresecurity.enums.Audience.STAFF;
 
 @Getter
 @Setter
@@ -20,26 +18,24 @@ import static com.restaurantos.coresecurity.enums.AuthType.OTP;
 @AllArgsConstructor
 public class AuthRequest {
 
-    private AuthType authType;
+    private Audience audience;
 
+    /** OAuth provider key (e.g. "google", "apple") — used by CUSTOMER/PARTNER flows. */
     private String authProvider;
 
+    /** OIDC ID token from the provider — verified server-side for CUSTOMER/PARTNER flows. */
+    private String idToken;
+
+    /** Username — used by the STAFF (internal password) flow. */
     private String username;
 
+    /** Password — used by the STAFF (internal password) flow. */
     private String password;
 
     private Set<String> roles;
 
-    public boolean isInternal() {
-        return this.authType == INTERNAL;
-    }
-
-    public boolean isCustomer() {
-        return this.authType == CUSTOMER;
-    }
-
-    public boolean isOTP() {
-        return this.authType == OTP;
+    public boolean isStaff() {
+        return this.audience == STAFF;
     }
 
 }
