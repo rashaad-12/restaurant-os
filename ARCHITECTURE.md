@@ -90,7 +90,7 @@ Severity: 🔴 critical · 🟠 major · 🟡 minor
 | # | Sev | Finding | Location |
 |---|---|---|---|
 | 1 | ✅ | **~~Shared database across services.~~** *Resolved:* `auth-service` and `user-service` are merged into **`identity-service`**, a single owner of `user_db`. The cross-service `project(':user-service')` dependency is gone; the `UserRepository`/`User` access is now in-process within one module. | `identity-service/` |
-| 2 | 🔴 | **No authorization enforcement.** `@EnableMethodSecurity` is on and roles are decoded into authorities, but there is **not a single `@PreAuthorize`/`hasRole`** anywhere. The chain is only `.anyRequest().authenticated()`, so *any* authenticated user can create/delete users, menus, and orders for *any* restaurant. | `SecurityConfig.java`, all controllers |
+| 2 | ✅ | **~~No authorization enforcement.~~** *Resolved:* `@PreAuthorize` role gating + tenant-scope enforcement are in place across `identity-service` (users/restaurants), `menu-service`, and `order-service`. Reusable scope logic lives in `core-security` `ScopeGuard`; order-service adds ownership (customer self-service). | `core-security/authz/ScopeGuard`, `*/security/*Guard`, controllers |
 | 3 | 🔴 | **Committed secrets.** JWT signing secrets live in `application-localdev.yml` (and are duplicated in every service's yml). DB credentials (`dev/dev`, `root`) are in `docker-compose.yml`. | `*/application-localdev.yml`, `docker-compose.yml` |
 | 4 | 🔴 | **Access/refresh token TTLs are inverted.** All three auth impls call `generateToken(..., true)` (refresh flag → **refresh** TTL) and assign the result to the **access** token, and `false` (access TTL) to the **refresh** token. Access tokens therefore live as long as refresh tokens and vice-versa. | `CustomerAuthServiceImpl`, `InternalAuthServiceImpl`, `OtpAuthServiceImpl` |
 | 5 | 🔴 | **Stubbed / bypassable auth.** OTP `sendOtp` is empty and `verifyOtp` hard-codes `isValidOtp = true`; customer login only string-compares `oauthProvider` (marked `TODO: implement proper OAuth provider verification`) with no real token validation. If shipped, these are auth bypasses. | `OtpAuthServiceImpl`, `CustomerAuthServiceImpl` |
@@ -135,7 +135,7 @@ Concrete, low-risk changes that improve quality without changing architecture:
 
 ### P0 — Correctness & security (before any further feature work)
 1. **Fix the access/refresh TTL inversion** (#4) and add a test asserting access TTL < refresh TTL.
-2. **Add method-level authorization** (#2): `@PreAuthorize("hasRole('MANAGER')")` etc. on write endpoints, and enforce that requested `restaurantCode`s are a subset of the caller's token scope.
+2. ✅ **~~Add method-level authorization~~** (#2): *Done* — `@PreAuthorize` + `ScopeGuard` tenant-scope across identity, menu, and order; order adds customer ownership.
 3. **Externalise secrets** (#3): move JWT keys and DB creds to environment variables / a secrets manager; keep only placeholders in committed yml; rotate the leaked keys.
 4. **Finish or gate the stubbed auth flows** (#5): implement real OTP verification and OAuth token validation, or disable those endpoints until implemented.
 

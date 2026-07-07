@@ -1,6 +1,7 @@
 package com.restaurantos.menuservice.service.impl;
 
 import com.restaurantos.common.util.DateUtil;
+import com.restaurantos.coresecurity.authz.ScopeGuard;
 import com.restaurantos.menuservice.dto.MenuDTO;
 import com.restaurantos.menuservice.dto.MenuItemDTO;
 import com.restaurantos.menuservice.enums.MenuStatus;
@@ -11,8 +12,8 @@ import com.restaurantos.menuservice.model.Menu;
 import com.restaurantos.menuservice.model.MenuItem;
 import com.restaurantos.menuservice.repository.MenuRepository;
 import com.restaurantos.menuservice.service.MenuService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,20 +30,22 @@ import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class MenuServiceImpl implements MenuService {
 
-    @Autowired
-    private MenuRepository menuRepository;
+    private final MenuRepository menuRepository;
 
-    @Autowired
-    private MenuMapper menuMapper;
+    private final MenuMapper menuMapper;
 
-    @Autowired
-    private MenuItemMapper menuItemMapper;
+    private final MenuItemMapper menuItemMapper;
+
+    private final ScopeGuard scopeGuard;
 
     @Override
     @Transactional
     public String createMenu(List<MenuDTO> request) {
+        request.forEach(dto -> scopeGuard.assertWithinScope(Set.of(dto.getRestaurantCode())));
+
         List<Menu> menus = request.stream()
                 .map(menuMapper::toEntity)
                 .toList();
@@ -62,9 +65,11 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional(readOnly = true)
     public MenuDTO getMenuById(String id) {
-        return menuRepository.findById(id)
-                .map(menuMapper::toDTO)
-                .orElseThrow(MenuNotFoundException::new);
+        Menu menu = menuRepository.findById(id).orElseThrow(MenuNotFoundException::new);
+
+        scopeGuard.assertCanView(Set.of(menu.getRestaurantCode()));
+
+        return menuMapper.toDTO(menu);
     }
 
     @Override
@@ -94,6 +99,8 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional
     public String updateMenu(List<MenuDTO> request) {
+        request.forEach(dto -> scopeGuard.assertWithinScope(Set.of(dto.getRestaurantCode())));
+
         List<Menu> toUpdate = request.stream()
                 .map(menuRequest ->
                         menuRepository.findByCodeAndRestaurantCode(menuRequest.getCode(), menuRequest.getRestaurantCode())
@@ -125,6 +132,8 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional
     public String publishMenu(List<MenuDTO> request) {
+        request.forEach(dto -> scopeGuard.assertWithinScope(Set.of(dto.getRestaurantCode())));
+
         List<Menu> toPublish = request.stream()
                 .map(menuRequest ->
                         menuRepository.findByCodeAndRestaurantCode(menuRequest.getCode(), menuRequest.getRestaurantCode())
@@ -148,6 +157,8 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional
     public String archiveMenu(List<MenuDTO> request) {
+        request.forEach(dto -> scopeGuard.assertWithinScope(Set.of(dto.getRestaurantCode())));
+
         List<Menu> toArchive = request.stream()
                 .map(menuRequest ->
                         menuRepository.findByCodeAndRestaurantCode(menuRequest.getCode(), menuRequest.getRestaurantCode())
@@ -170,6 +181,8 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional
     public String deleteMenu(List<MenuDTO> request) {
+        request.forEach(dto -> scopeGuard.assertWithinScope(Set.of(dto.getRestaurantCode())));
+
         request.forEach(menuDTO ->
                 menuRepository.deleteByCodeAndRestaurantCode(menuDTO.getCode(), menuDTO.getRestaurantCode())
         );

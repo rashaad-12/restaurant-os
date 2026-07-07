@@ -13,12 +13,14 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 public interface OrderMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "customerId", ignore = true)
     @Mapping(target = "status", expression = "java(statusMapper.toStatusOrDefault(dto.getStatus()))")
     Order toEntity(OrderDTO dto);
 
     OrderDTO toDTO(Order order);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "customerId", ignore = true)
     @Mapping(target = "createDttm", ignore = true)
     @Mapping(target = "updateDttm", ignore = true)
     void updateEntityFromDTO(OrderDTO dto, @MappingTarget Order order);

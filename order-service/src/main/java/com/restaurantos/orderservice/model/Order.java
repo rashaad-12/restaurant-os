@@ -45,6 +45,8 @@ public class Order {
 
     private String restaurantCode;
 
+    private String customerId;
+
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 

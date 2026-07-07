@@ -13,6 +13,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByRestaurantCodeIn(Set<String> restaurantCodes);
 
+    List<Order> findByCustomerId(String customerId);
+
     Optional<Order> findByOrderNumberAndRestaurantCode(String orderNumber, String restaurantCode);
 
     void deleteByOrderNumberAndRestaurantCode(String orderNumber, String restaurantCode);

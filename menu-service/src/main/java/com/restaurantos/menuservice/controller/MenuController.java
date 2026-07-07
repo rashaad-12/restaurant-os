@@ -3,8 +3,9 @@ package com.restaurantos.menuservice.controller;
 import com.restaurantos.coresecurity.annotation.RestaurantCodes;
 import com.restaurantos.menuservice.dto.MenuDTO;
 import com.restaurantos.menuservice.service.MenuService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -20,12 +21,13 @@ import java.util.Set;
 
 @RestController
 @RequestMapping("/menu-api/v1/menu")
+@RequiredArgsConstructor
 public class MenuController {
 
-    @Autowired
-    private MenuService menuService;
+    private final MenuService menuService;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER','MANAGER')")
     public ResponseEntity<String> createMenu(@RequestBody List<MenuDTO> request) {
         return ResponseEntity.ok(menuService.createMenu(request));
     }
@@ -46,21 +48,25 @@ public class MenuController {
     }
 
     @PutMapping
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER','MANAGER')")
     public ResponseEntity<String> updateMenu(@RequestBody List<MenuDTO> request) {
         return ResponseEntity.ok(menuService.updateMenu(request));
     }
 
     @PatchMapping("/publish")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER','MANAGER')")
     public ResponseEntity<String> publishMenu(@RequestBody List<MenuDTO> request) {
         return ResponseEntity.ok(menuService.publishMenu(request));
     }
 
     @PatchMapping("/archive")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER','MANAGER')")
     public ResponseEntity<String> archiveMenu(@RequestBody List<MenuDTO> request) {
         return ResponseEntity.ok(menuService.archiveMenu(request));
     }
 
     @DeleteMapping
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER','MANAGER')")
     public ResponseEntity<String> deleteMenu(@RequestBody List<MenuDTO> request) {
         return ResponseEntity.ok(menuService.deleteMenu(request));
     }

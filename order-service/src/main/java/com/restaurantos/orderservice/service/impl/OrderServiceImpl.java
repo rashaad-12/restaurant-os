@@ -6,14 +6,16 @@ import com.restaurantos.orderservice.exception.OrderNotFoundException;
 import com.restaurantos.orderservice.mapper.OrderMapper;
 import com.restaurantos.orderservice.model.Order;
 import com.restaurantos.orderservice.repository.OrderRepository;
+import com.restaurantos.orderservice.security.OrderAccessGuard;
 import com.restaurantos.orderservice.service.OrderService;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static com.restaurantos.orderservice.enums.OrderStatus.ACCEPTED;
@@ -26,13 +28,14 @@ import static java.util.Objects.nonNull;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 
 @Service
+@RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
-    @Autowired
-    private OrderRepository orderRepository;
+    private final OrderRepository orderRepository;
 
-    @Autowired
-    private OrderMapper orderMapper;
+    private final OrderMapper orderMapper;
+
+    private final OrderAccessGuard orderAccessGuard;
 
     private static final Map<OrderStatus, Set<OrderStatus>> ALLOWED_TRANSITIONS = Map.of(
             PLACED, Set.of(ACCEPTED, REJECTED, CANCELLED),
@@ -48,6 +51,15 @@ public class OrderServiceImpl implements OrderService {
                 .peek(order -> order.setOrderItems(order.getOrderItems()))
                 .toList();
 
+        boolean staff = orderAccessGuard.actingAsStaff();
+        orders.forEach(order -> {
+            if (staff) {
+                orderAccessGuard.assertStaffScope(order);
+            } else {
+                order.setCustomerId(orderAccessGuard.callerUsername());
+            }
+        });
+
         orderRepository.saveAll(orders);
 
         return "Order creation request was processed successfully";
@@ -56,15 +68,26 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public OrderDTO getOrderById(Long id) {
-        return orderRepository.findById(id)
-                .map(orderMapper::toDTO)
-                .orElseThrow(OrderNotFoundException::new);
+        Order order = orderRepository.findById(id).orElseThrow(OrderNotFoundException::new);
+
+        orderAccessGuard.assertCanView(order);
+
+        return orderMapper.toDTO(order);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderDTO> getAllOrder(Set<String> restaurantCodes) {
-        return orderRepository.findByRestaurantCodeIn(restaurantCodes).stream()
+        List<Order> orders;
+        if (orderAccessGuard.isPlatformAdmin()) {
+            orders = orderRepository.findAll();
+        } else if (orderAccessGuard.actingAsStaff()) {
+            orders = orderRepository.findByRestaurantCodeIn(restaurantCodes);
+        } else {
+            orders = orderRepository.findByCustomerId(orderAccessGuard.callerUsername());
+        }
+
+        return orders.stream()
                 .map(orderMapper::toDTO)
                 .toList();
     }
@@ -75,6 +98,8 @@ public class OrderServiceImpl implements OrderService {
         List<Pair<OrderDTO, Order>> toUpdatePairs = getOrderPairs(request);
 
         if (toUpdatePairs.isEmpty()) return "No orders to update";
+
+        toUpdatePairs.forEach(orderPair -> orderAccessGuard.assertStaffScope(orderPair.getRight()));
 
         toUpdatePairs.forEach(orderPair ->
                 orderMapper.updateEntityFromDTO(orderPair.getLeft(), orderPair.getRight()));
@@ -92,6 +117,8 @@ public class OrderServiceImpl implements OrderService {
 
         if (isEmpty(toAcceptPairs)) return "No orders to Accept";
 
+        toAcceptPairs.forEach(orderPair -> orderAccessGuard.assertStaffScope(orderPair.getRight()));
+
         toAcceptPairs.forEach(orderPair ->
             orderPair.getRight().setStatus(ACCEPTED));
 
@@ -107,6 +134,8 @@ public class OrderServiceImpl implements OrderService {
         List<Pair<OrderDTO, Order>> toPreparePairs = getOrderPairs(request);
 
         if (isEmpty(toPreparePairs)) return "No orders to publish";
+
+        toPreparePairs.forEach(orderPair -> orderAccessGuard.assertStaffScope(orderPair.getRight()));
 
         toPreparePairs.forEach(orderPair ->
                 orderPair.getRight().setStatus(PREPARING));
@@ -124,6 +153,8 @@ public class OrderServiceImpl implements OrderService {
 
         if (isEmpty(toCompletePairs)) return "No orders to publish";
 
+        toCompletePairs.forEach(orderPair -> orderAccessGuard.assertStaffScope(orderPair.getRight()));
+
         toCompletePairs.forEach(orderPair ->
                 orderPair.getRight().setStatus(COMPLETED));
 
@@ -139,6 +170,8 @@ public class OrderServiceImpl implements OrderService {
         List<Pair<OrderDTO, Order>> toRejectPairs = getOrderPairs(request);
 
         if (isEmpty(toRejectPairs)) return "No orders to publish";
+
+        toRejectPairs.forEach(orderPair -> orderAccessGuard.assertStaffScope(orderPair.getRight()));
 
         toRejectPairs.forEach(orderPair ->
                 orderPair.getRight().setStatus(REJECTED));
@@ -156,6 +189,8 @@ public class OrderServiceImpl implements OrderService {
 
         if (isEmpty(toCancelPairs)) return "No orders to publish";
 
+        toCancelPairs.forEach(orderPair -> orderAccessGuard.assertOwnerOrStaffScope(orderPair.getRight()));
+
         toCancelPairs.forEach(orderPair ->
                 orderPair.getRight().setStatus(CANCELLED));
 
@@ -168,8 +203,15 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public String deleteOrder(List<OrderDTO> request) {
-        request.forEach(orderDTO ->
-                orderRepository.deleteByOrderNumberAndRestaurantCode(orderDTO.getOrderNumber(), orderDTO.getRestaurantCode())
+        List<Order> toDelete = request.stream()
+                .map(dto -> orderRepository.findByOrderNumberAndRestaurantCode(dto.getOrderNumber(), dto.getRestaurantCode()).orElse(null))
+                .filter(Objects::nonNull)
+                .toList();
+
+        toDelete.forEach(orderAccessGuard::assertStaffScope);
+
+        toDelete.forEach(order ->
+                orderRepository.deleteByOrderNumberAndRestaurantCode(order.getOrderNumber(), order.getRestaurantCode())
         );
 
         return "Order deletion request was processed successfully";

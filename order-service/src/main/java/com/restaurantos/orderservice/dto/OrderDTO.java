@@ -22,6 +22,8 @@ public class OrderDTO {
 
     private String restaurantCode;
 
+    private String customerId;
+
     private OrderStatus status;
 
     private List<OrderItemDTO> orderItems;

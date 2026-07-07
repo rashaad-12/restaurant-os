@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AccessGuardTest {
 
-    private final AccessGuard guard = new AccessGuard();
+    private final AccessGuard guard = new AccessGuard(new com.restaurantos.coresecurity.authz.ScopeGuard());
 
     @AfterEach
     void clearContext() {

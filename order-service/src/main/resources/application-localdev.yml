@@ -23,6 +23,6 @@ spring:
 
 logging:
   level:
-    com.restaurantos.userservice: DEBUG
+    com.restaurantos.orderservice: DEBUG
     org.springframework.security: DEBUG
     com.restaurantos.coresecurity: DEBUG

@@ -8,10 +8,12 @@ It is a plain library (`jar`, not `bootJar`) — no `main`, starts nothing on it
 contributes beans, a Spring Security filter chain, MVC argument resolvers, and configuration
 properties into whatever Spring Boot application component-scans `com.restaurantos`.
 
-> **Consumers.** `auth-service` is the single **issuer** (signs tokens). Every other service
-> (`user`, `menu`, `order`, …) is a **verifier**. A consumer adds
+> **Consumers.** `identity-service` is the single **issuer** (signs tokens). Every other service
+> (`menu`, `order`, …) is a **verifier**. A consumer adds
 > `implementation project(':core-security')` and component-scans `com.restaurantos` — services
-> already do via `@SpringBootApplication(scanBasePackages = "com.restaurantos")`.
+> already do via `@SpringBootApplication(scanBasePackages = "com.restaurantos")`. A verifier that
+> uses `@PreAuthorize` also needs `spring-boot-starter-security` on its own compile classpath
+> (core-security exposes it only at runtime).
 
 ---
 
@@ -20,7 +22,7 @@ properties into whatever Spring Boot application component-scans `com.restaurant
 ```
                 RS256 asymmetric signing (issuer signs, everyone verifies)
 
-  auth-service (ISSUER)                         resource service (VERIFIER)
+  identity-service (ISSUER)                     resource service (VERIFIER)
   ├─ has RSA PRIVATE key  ── signs ──►  JWT  ──► ├─ has RSA PUBLIC key only
   │  (app_private.pem, secret)                    │  (bundled in core-security jar)
   └─ JwtService.issue(...)                        └─ JwtService.verify(...) → AuthenticatedUser
@@ -30,7 +32,8 @@ properties into whatever Spring Boot application component-scans `com.restaurant
 secret had to be copied into every service's config. With RS256 only `auth-service` can mint
 tokens; verifiers hold the **public** key (not a secret), which ships inside the core-security
 jar — so a verifier needs **zero** JWT configuration and there is nothing sensitive to
-duplicate. This is the standard microservices JWT model and survives the service split.
+duplicate. Only `identity-service` can mint tokens. This is the standard microservices JWT model
+and survives the service split.
 
 ---
 
@@ -46,7 +49,8 @@ duplicate. This is the standard microservices JWT model and survives the service
 | Stateless chain, CORS, JSON 401/403, `PasswordEncoder` | `SecurityConfig` |
 | Read/write auth cookies | `AuthCookieManager` |
 | Token revocation hook | `TokenRevocationChecker` (SPI; no-op default) |
-| **Who** a user is / credentials / login methods | ❌ `auth-service` |
+| Reusable tenant-scope / view checks | `ScopeGuard` (see §8) |
+| **Who** a user is / credentials / login methods | ❌ `identity-service` |
 | **What** a role may do (`@PreAuthorize`) | ❌ each service (see §8) |
 
 The boundary is deliberate: this module knows how to *prove* an identity and carry it, but
@@ -94,6 +98,7 @@ audiences) is designed to be extended — see §9.
 
 ```
 annotation/   CurrentUser, RestaurantCodes                 controller parameter markers
+authz/        ScopeGuard                                    reusable tenant-scope + view + role checks
 config/
   SecurityConfig            stateless chain + CORS + entrypoints + revocation default bean
   SecurityProperties        app.security.jwt.* (keys, issuer, skew, cookie, cors, ttl)
@@ -186,18 +191,44 @@ without code changes.
 
 ---
 
-## 8. Authorization (done by each service, not here)
+## 8. Authorization (enforced by each service; primitives live here)
 
-`@EnableMethodSecurity` is on and roles arrive as `ROLE_*` authorities, but this module only
-enforces *authenticated vs. public*. Each service authorizes its own endpoints:
+This module authenticates and carries identity; it does **not** decide what a role may do. Each
+service authorizes its own endpoints, in two layers:
 
-```java
-@PreAuthorize("hasRole('MANAGER')")   // roles flow correctly end-to-end
-@PostMapping ...
-```
+1. **Role gating — declarative.** `@EnableMethodSecurity` is on and roles arrive as `ROLE_*`
+   authorities, so `@PreAuthorize("hasAnyRole('OWNER','MANAGER')")` works end-to-end. Never write
+   the `ROLE_` prefix (invariant §3.7 adds it). A verifier using `@PreAuthorize` must have
+   `spring-boot-starter-security` on its compile classpath.
 
-Also scope every query to the caller's tenant using `@RestaurantCodes`, never a body field —
-the codes come from the verified token, so they cannot be spoofed by the client.
+2. **Tenant scope — data-aware, via `ScopeGuard`.** Role annotations can't express "does this record
+   belong to a restaurant the caller controls", because that depends on the payload/record.
+   `authz/ScopeGuard` reads the caller's `AuthenticatedUser` from the `SecurityContext` and offers:
+
+   | Method | Rule |
+   |---|---|
+   | `assertWithinScope(codes)` | **writes** — caller's `restaurantCodes` must be a **superset** of `codes` (empty denied) |
+   | `assertCanView(codes)` | **reads** — caller's scope must **intersect** `codes` |
+   | `isPlatformAdmin()` / `hasRole(r)` / `hasRestaurantScope()` / `callerUsername()` | role & scope predicates |
+
+   `ADMIN` (`ScopeGuard.PLATFORM_ADMIN_ROLE`) bypasses both scope checks — it is the one
+   platform-global role. Denials throw `AccessDeniedException` → HTTP 403 (see §9 error handling).
+
+Services compose `ScopeGuard` for their own model: `identity-service`'s `AccessGuard` adds
+`UserRole`-typed role helpers and a privilege-escalation guard; `order-service`'s `OrderAccessGuard`
+adds order **ownership** (a customer owns the orders they place) on top of scope. Menu-service uses
+`ScopeGuard` directly.
+
+Always derive the caller's tenant from the verified token (`@RestaurantCodes` or `ScopeGuard`),
+**never** from a request-body field — the token can't be spoofed by the client.
+
+### Error handling
+
+`GlobalSecurityExceptionHandler` (a `@RestControllerAdvice` at `HIGHEST_PRECEDENCE`) maps
+`AccessDeniedException` → 403 and `AuthenticationException` → 401 as `ApiError` JSON, for **every**
+service — before any service-local `@ExceptionHandler(Exception.class)` can swallow them as 500.
+`RestSecurityErrorHandler` produces the same shape for failures caught in the filter chain
+(missing/expired token). Domain 404s stay in each service's own advice.
 
 ---
 
@@ -246,6 +277,14 @@ the codes come from the verified token, so they cannot be spoofed by the client.
 ---
 
 ## 12. Changelog
+
+### authorization primitives
+- **`ScopeGuard`** (`authz/`) — reusable tenant-scope (`assertWithinScope`), read-visibility
+  (`assertCanView`), and role/scope predicates, `ADMIN`-bypassed. Reused by identity, menu, and
+  order; identity's `AccessGuard` now delegates its scope logic to it.
+- **`GlobalSecurityExceptionHandler` + `ApiError`** (`web/`) — one `@RestControllerAdvice`
+  (HIGHEST_PRECEDENCE) renders 401/403 as `{code,message}` JSON platform-wide, so services stop
+  re-declaring it and `@PreAuthorize`/`ScopeGuard` denials never get masked as 500.
 
 ### 2026-07-02 — audience model
 - **`AuthType {INTERNAL, CUSTOMER, OTP}` → `Audience {STAFF, PARTNER, CUSTOMER}`**, carried in the
