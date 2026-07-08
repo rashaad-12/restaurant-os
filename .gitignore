@@ -38,3 +38,6 @@ out/
 
 ### Secrets ###
 .env/
+
+### Graphify ###
+graphify-out/
