@@ -18,6 +18,8 @@ import java.util.List;
 @AllArgsConstructor
 public class OrderDTO {
 
+    private Long id;
+
     private String orderNumber;
 
     private String restaurantCode;

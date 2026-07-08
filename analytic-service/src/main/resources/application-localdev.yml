@@ -1,0 +1,31 @@
+server:
+  port: 8186
+
+spring:
+  application:
+    name: analytic-service
+
+elasticsearch:
+  scheme: http
+  host: localhost
+  port: 9200
+  prefix: dev_orders_
+  username: admin
+  password: password
+  connectionTimeout: 20
+  socketTimeout: 60
+
+analytics:
+  limits:
+    max-page-size: 100
+    max-result-window: 10000
+    max-terms-size: 1000
+    max-aggregations: 20
+    max-aggregation-depth: 3
+    query-timeout-ms: 5000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

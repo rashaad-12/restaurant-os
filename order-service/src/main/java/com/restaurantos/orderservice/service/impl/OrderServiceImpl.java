@@ -1,7 +1,9 @@
 package com.restaurantos.orderservice.service.impl;
 
 import com.restaurantos.orderservice.dto.OrderDTO;
+import com.restaurantos.orderservice.dto.search.SearchDocument;
 import com.restaurantos.orderservice.enums.OrderStatus;
+import com.restaurantos.orderservice.mapper.OrderSearchMapper;
 import com.restaurantos.orderservice.exception.OrderNotFoundException;
 import com.restaurantos.orderservice.mapper.OrderMapper;
 import com.restaurantos.orderservice.model.Order;
@@ -34,6 +36,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
 
     private final OrderMapper orderMapper;
+
+    private final OrderSearchMapper orderSearchMapper;
 
     private final OrderAccessGuard orderAccessGuard;
 
@@ -73,6 +77,32 @@ public class OrderServiceImpl implements OrderService {
         orderAccessGuard.assertCanView(order);
 
         return orderMapper.toDTO(order);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SearchDocument> getSearchDocuments(List<String> ids) {
+        if (isEmpty(ids)) return List.of();
+
+        // SYSTEM-scoped, cross-restaurant read serving the generic search-index platform. Ids arrive as
+        // opaque strings from the platform; authorization is enforced at the controller (hasRole('SYSTEM')),
+        // so no per-restaurant scoping is applied here by design.
+        List<Long> orderIds = ids.stream()
+                .map(this::parseId)
+                .filter(Objects::nonNull)
+                .toList();
+
+        return orderRepository.findAllById(orderIds).stream()
+                .map(orderSearchMapper::toSearchDocument)
+                .toList();
+    }
+
+    private Long parseId(String id) {
+        try {
+            return Long.valueOf(id);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     @Override

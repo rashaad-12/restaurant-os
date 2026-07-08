@@ -39,9 +39,9 @@ public class OrderItem {
 
     private String menuCode;
 
-    private String name;
+    private String menuName;
 
-    private String description;
+    private String menuDescription;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus status;

@@ -3,7 +3,11 @@ server:
 
 spring:
   application:
-    name: elastic-service
+    name: elastic-sync-service
+  kafka:
+    consumer:
+      bootstrap-servers: localhost:29092
+      group-id: order-sync
 
 elasticsearch:
   scheme: http
@@ -13,3 +17,34 @@ elasticsearch:
   password: password
   connectionTimeout: 20
   socketTimeout: 60
+
+kafka:
+  topics:
+    dlq: dev.restaurant.orders.dlq
+  consumer:
+    concurrency: 10
+
+# Per-source sync config. Add a new source (any future service) here — no code change.
+sync:
+  sources:
+    orders:
+      topic: dev.restaurant.orders
+      index-prefix: dev_orders_
+      enrichment:
+        base-url: http://localhost:8184
+        path: /order-api/v1/order/search-documents/by-ids
+
+integration:
+  identity-service:
+    base-url: http://localhost:8181
+    client-id: elastic-sync-service
+    client-secret: local-system-secret
+  http:
+    connect-timeout-ms: 2000
+    read-timeout-ms: 5000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

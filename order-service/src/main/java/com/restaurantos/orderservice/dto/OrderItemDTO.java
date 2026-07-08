@@ -20,7 +20,7 @@ public class OrderItemDTO {
 
     private String menuCode;
 
-    private String MenuName;
+    private String menuName;
 
     private String menuDescription;
 

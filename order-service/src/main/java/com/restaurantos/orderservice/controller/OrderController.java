@@ -2,6 +2,7 @@ package com.restaurantos.orderservice.controller;
 
 import com.restaurantos.coresecurity.annotation.RestaurantCodes;
 import com.restaurantos.orderservice.dto.OrderDTO;
+import com.restaurantos.orderservice.dto.search.SearchDocument;
 import com.restaurantos.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +36,12 @@ public class OrderController {
     @GetMapping("/{id}")
     public ResponseEntity<OrderDTO> getOrderById(@PathVariable Long id) {
         return ResponseEntity.ok(orderService.getOrderById(id));
+    }
+
+    @PostMapping("/search-documents/by-ids")
+    @PreAuthorize("hasRole('SYSTEM')")
+    public ResponseEntity<List<SearchDocument>> getSearchDocuments(@RequestBody List<String> ids) {
+        return ResponseEntity.ok(orderService.getSearchDocuments(ids));
     }
 
     @GetMapping("/getAll")
