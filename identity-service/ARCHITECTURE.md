@@ -292,6 +292,29 @@ relational/JPA datasource.
 
 ---
 
+## 8a. Extensibility Rules — Dos & Don'ts
+
+**Do**
+- **Do** mint every token through `AuthTokenIssuer` → `core-security` `JwtService`; it is the single
+  place that pairs access+refresh and sets cookies.
+- **Do** take OAuth identity fields (email, subject, name) from the verified ID token, and staff
+  credentials via the shared BCrypt `PasswordEncoder`.
+- **Do** put both a `@PreAuthorize` role gate **and** an `AccessGuard` check (scope +
+  no-escalation for writes, view-scope for reads) on every user/restaurant endpoint.
+- **Do** provision partners as `PENDING_APPROVAL` and gate token issue on `isEnabled()`.
+- **Do** add OAuth providers and audiences by **configuration** where possible.
+
+**Don't**
+- **Don't** configure `app.security.jwt.private-key` on any other service — identity is the only issuer.
+- **Don't** honour `roles`/`restaurantCodes` from `AuthRequest` for privilege — they come from the
+  resolved `User`.
+- **Don't** move a login route out of the `permitAll` prefix `/auth-api/v1/auth/**` (chicken-and-egg
+  for login), or change the prefix without updating `core-security` `SecurityConfig` in lockstep.
+- **Don't** hand-roll `Set-Cookie` — always go through `AuthCookieManager`.
+- **Don't** auto-activate partner accounts or flip provisioning on by default.
+
+---
+
 ## 9. Endpoint reference
 
 | Method | Path | Audience | Body | Result |

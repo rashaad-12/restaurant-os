@@ -39,5 +39,9 @@ out/
 ### Secrets ###
 .env/
 
-### Graphify ###
+### claude ###
+.claude/
 graphify-out/
+CLAUDE.md
+DEFECTS.md
+ENHANCEMENTS.md

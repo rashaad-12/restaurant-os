@@ -252,31 +252,31 @@ service — before any service-local `@ExceptionHandler(Exception.class)` can sw
 
 ---
 
-## 10. Production checklist
+## 10. Extensibility Rules — Dos & Don'ts
 
-- [ ] Private key injected via env/secret manager; **not** committed. Public key distributed to verifiers.
-- [ ] `cookie.secure=true` and an appropriate `same-site` behind HTTPS.
-- [ ] `cors.enabled=true` with explicit `allowed-origins` on browser-facing services.
-- [ ] Consider RS256 → JWKS if you rotate keys or add many services.
-- [ ] Provide a `TokenRevocationChecker` if logout/compromise must invalidate live tokens.
-- [ ] Short access TTL + refresh rotation (`rotateToken`) for sensitive flows.
+The library's load-bearing contracts are the invariants in §3; this is the operational summary.
+
+**Do**
+- **Do** verify the token exactly once (in `JwtAuthenticationFilter`) and read the materialised
+  `AuthenticatedUser` principal everywhere downstream.
+- **Do** keep `roles`/`restaurantCodes` as CSV claims via `JwtTokenUtil.join/splitClaim`, and let
+  `SecurityAuthorities` add the `ROLE_` prefix exactly once.
+- **Do** derive tenant scope from the verified token (`@RestaurantCodes` / `ScopeGuard`), never from
+  a request body.
+- **Do** extend via the documented seams: `TokenRevocationChecker` (revocation), `KeyLoader` (JWKS),
+  a new `Audience`, or a subclass of `AbstractPrincipalArgumentResolver`.
+- **Do** roll out any wire-format change (§3.3) to issuer **and** all verifiers together.
+
+**Don't**
+- **Don't** reintroduce a shared symmetric secret, and never give a verifier the private key.
+- **Don't** write the `ROLE_` prefix by hand, re-parse the token in resolvers/controllers, or relax
+  the `ACCESS`-only rule that stops refresh tokens authenticating.
+- **Don't** move the `permitAll` login prefix `/auth-api/v1/auth/**` on one side only.
+- **Don't** change the `issuer` claim value without invalidating and re-issuing every live token.
 
 ---
 
-## 11. Known limitations / roadmap
-
-- **Revocation** is a no-op by default (§9) — logout clears cookies but the access token stays
-  valid until expiry unless a checker is wired.
-- **No audience enforcement on verify.** The `aud` claim is available on `AuthenticatedUser` but
-  the shared chain doesn't restrict it; a service that must only accept e.g. `STAFF` tokens should
-  check `audience` in `@PreAuthorize` or its own filter.
-- **Public key is bundled**, not fetched — fine for now; JWKS is the scale-out path.
-- **`restaurantCodes` travel in the token** — a user in very many restaurants can bloat the
-  cookie past ~4 KB; move to a scope lookup if that becomes real.
-
----
-
-## 12. Changelog
+## 11. Changelog
 
 ### authorization primitives
 - **`ScopeGuard`** (`authz/`) — reusable tenant-scope (`assertWithinScope`), read-visibility

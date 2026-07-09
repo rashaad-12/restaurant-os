@@ -6,8 +6,8 @@ import co.elastic.clients.elasticsearch._types.query_dsl.ChildScoreMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.restaurantos.analyticservice.dto.request.Condition;
-import com.restaurantos.analyticservice.dto.request.ConditionType;
-import com.restaurantos.analyticservice.dto.request.FieldOperator;
+import com.restaurantos.analyticservice.enums.ConditionType;
+import com.restaurantos.analyticservice.enums.FieldOperator;
 import com.restaurantos.analyticservice.enums.FieldType;
 import org.springframework.stereotype.Component;
 

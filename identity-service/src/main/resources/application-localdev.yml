@@ -6,7 +6,7 @@ spring:
     name: identity-service
   data:
     mongodb:
-      uri: mongodb://dev:dev@localhost:27019/user_db?authSource=admin
+      uri: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@localhost:27019/user_db?authSource=admin
   devtools:
     restart:
       enabled: true
@@ -30,6 +30,6 @@ app:
         same-site: Lax
     system-client:
       client-id: elastic-sync-service
-      client-secret: local-system-secret
+      client-secret: ${SYSTEM_CLIENT_SECRET}
       roles: SYSTEM
       audience: PARTNER

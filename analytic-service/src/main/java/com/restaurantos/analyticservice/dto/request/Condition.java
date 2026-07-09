@@ -1,5 +1,7 @@
 package com.restaurantos.analyticservice.dto.request;
 
+import com.restaurantos.analyticservice.enums.ConditionType;
+import com.restaurantos.analyticservice.enums.FieldOperator;
 import lombok.Getter;
 import lombok.Setter;
 

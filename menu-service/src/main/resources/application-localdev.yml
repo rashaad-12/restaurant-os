@@ -6,7 +6,7 @@ spring:
     name: menu-service
   data:
     mongodb:
-      uri: mongodb://dev:dev@localhost:27018/menu_db?authSource=admin
+      uri: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@localhost:27018/menu_db?authSource=admin
       auto-index-creation: true
   devtools:
     restart:

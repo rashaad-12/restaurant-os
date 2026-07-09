@@ -10,8 +10,8 @@ elasticsearch:
   host: localhost
   port: 9200
   prefix: dev_orders_
-  username: admin
-  password: password
+  username: ${ELASTIC_USERNAME}
+  password: ${ELASTIC_PASSWORD}
   connectionTimeout: 20
   socketTimeout: 60
 
@@ -23,6 +23,11 @@ analytics:
     max-aggregations: 20
     max-aggregation-depth: 3
     query-timeout-ms: 5000
+
+app:
+  security:
+    jwt:
+      public-key: .env/dev/keys/app_public.pem
 
 management:
   endpoints:

@@ -12,11 +12,6 @@ elastic-service's write side.
 
 Depends on: `co.elastic.clients:elasticsearch-java`, Jackson. **No datastore of its own.**
 
-> ⚠️ **Security gap (see §6).** This service currently has **no authentication or authorization** —
-> no `core-security`, no `spring-boot-starter-security`, no `@PreAuthorize`, and `orgCode` is taken
-> straight from the URL path. Any caller can query any tenant's analytics. This is the #1 item to fix
-> before it is exposed beyond a trusted network.
-
 ---
 
 ## 1. Where it sits
@@ -126,90 +121,37 @@ and swappable.
    before execution — this is the DoS guard for a generic API.
 4. **The repository only executes.** Keep request assembly and response mapping out of
    `ESSearchRepository`.
-5. **Tenant isolation is by index.** A request only ever targets `prefix + orgCode`. Once authz is
-   added (§6/§7), the caller's token scope — not the path `orgCode` — must decide which org they may
-   read.
+5. **Tenant isolation is by index.** A request only ever targets `prefix + orgCode`. Once
+   authorization is in place, the caller's **token scope** — not the path `orgCode` — must decide
+   which org they may read.
 
 ---
 
-## 6. Rating — 6.5 / 10
+## 6. Extensibility Rules — Dos & Don'ts
 
-**Reviewed:** 2026-07-08 (source).
+**Do**
+- **Do** keep query construction driven by live field-caps so the engine stays domain-agnostic.
+- **Do** enforce every `QueryLimits` bound *before* the request reaches Elasticsearch.
+- **Do** keep `ESSearchRepository` a pure execute-only boundary — build and map elsewhere.
+- **Do** target exactly one tenant index per request (`prefix + orgCode`).
+- **Do** prefer `filter`/`term` (non-scoring, cacheable) context over `must`/`match` where scoring
+  isn't needed — the builder already routes exact-match to `filter`; keep it that way.
 
-| Dimension | Score | Notes |
-|---|---|---|
-| Query engine design | 9 / 10 | Genuinely strong: schema-driven via field-caps, recursive bool/nested query builder, type-aware operators, clean builder/executor split. |
-| Guardrails | 8 / 10 | Thoughtful DoS bounds (result window, agg count/depth, timeout) enforced pre-execution — rare and correct. |
-| Layering | 8 / 10 | Controller → service → builders → execute-only repo; response mapping isolated. |
-| **Security** | **1 / 10** | **No authN/authZ at all**; `orgCode` from the path → any caller reads any tenant. Ships as an open cross-tenant data endpoint. |
-| Robustness | 6 / 10 | `IndexResolver`'s `@Value` on a `final` field with a constructor is redundant/fragile; blanket `RuntimeException`→500 leaks messages; no `@Valid`. |
-| Testing | 2 / 10 | No tests over the query builder — the most logic-dense, highest-value code to cover. |
-
-**Verdict:** technically the most impressive piece of engineering in the repo — a real generic ES
-query engine with proper guardrails — but it is **not shippable as-is** because it has no auth. The
-engine is production-quality; the perimeter is missing.
-
-### Known gaps
-| Sev | Finding |
-|---|---|
-| 🔴 | **No authentication/authorization.** No `core-security`, no `@PreAuthorize`; `orgCode` is an unauthenticated path param → cross-tenant read of any restaurant's orders. |
-| 🟠 | No tests for `QueryBuilder`/`AggregationBuilder`/`AggregationParser` (the core value). |
-| 🟠 | Committed ES credentials in `application-localdev.yml`; plaintext ES. |
-| 🟡 | `IndexResolver` mixes `@Value` on a `final` field **and** a constructor param — confusing; pick constructor binding. |
-| 🟡 | `handleRuntime` returns raw exception messages as `500` bodies — information leak; map to a generic error. |
-| 🟡 | No request validation (`@Valid`) on `SearchCriteria`; `maxTermsSize` defined but not wired. |
+**Don't**
+- **Don't** hardcode domain field names into `QueryBuilder`/`AggregationBuilder`.
+- **Don't** put request assembly or response mapping into the repository.
+- **Don't** widen or bypass a guardrail without a matching new bound — a generic query API invites
+  expensive requests.
+- **Don't** let a tenant read an index it isn't scoped to once authorization exists (derive the org
+  from the token, not the path).
 
 ---
 
-## 7. Next plans (roadmap)
+## 7. How to extend
 
-**P0 — Close the security hole**
-1. Add `core-security` + `spring-boot-starter-security`; require an authenticated token on both
-   endpoints.
-2. Derive the tenant from the **token scope**, not the path: reject (or ignore) a path `orgCode` the
-   caller isn't scoped to — reuse `ScopeGuard.assertCanView(org)`. `ADMIN` reads any; staff read
-   their `restaurantCodes`; customers get nothing (or only their own via a future filter).
-3. Add tests covering the authz matrix (in-scope / out-of-scope / admin).
-
-**P1 — Correctness & robustness**
-4. Unit-test the query engine: AND/OR/negation, nested-path grouping, per-type operators, range/date
-   handling, and the guardrail rejections (deep paging, agg count/depth).
-5. `@Valid` on `SearchCriteria`; sanitise the `500` handler so internal messages aren't returned.
-6. Fix `IndexResolver` construction; wire `maxTermsSize` into terms aggregations.
-
-**P2 — Capability & performance**
-7. Field allow-list / alias layer so clients query stable logical field names, decoupled from index
-   mappings (and to prevent querying sensitive fields).
-8. Response caching for hot dashboards (short-TTL, keyed by org + criteria hash).
-9. `search_after` cursor pagination as the sanctioned path past `maxResultWindow` for exports.
-10. Broaden beyond orders (menus, etc.) once those indices exist — the engine is already generic.
-
----
-
-## 8. Production optimisation plan
-
-**Query performance**
-- Prefer `filter`/`term` context (non-scoring, cacheable) over `must`/`match` wherever scoring isn't
-  needed — the builder already routes exact-match to `filter`; keep it that way.
-- Keep `trackTotalHits` honest but consider capping it (e.g. `track_total_hits: 10000`) for large
-  indices where an exact count is expensive and unused.
-- Enforce the query `timeout` (present) and add `terminate_after` for pathological queries.
-
-**Field-caps caching**
-- `MappingFieldRegistry` caches per index indefinitely — add TTL/invalidation so mapping changes
-  (new fields) are picked up without a restart, and pre-warm the cache for known tenants on startup.
-
-**Connection & resource tuning**
-- ES client: bounded connection pool, explicit connect/socket timeouts (present), retry on 429/503,
-  and back-pressure when ES sheds load. Run read traffic against ES replica shards.
-
-**Scaling & isolation**
-- Stateless service → scale horizontally behind the gateway; enforce per-tenant rate limits at the
-  edge (a generic query API invites expensive requests).
-- Keep the `QueryLimits` guardrails authoritative in every environment; tune them per cluster size.
-
-**Security & config hardening**
-- Ship the P0 auth first — do not expose this service publicly until tenant scope is enforced from
-  the token.
-- Externalise ES credentials to env/secrets; enable TLS + auth to Elasticsearch; drop `DEBUG` and
-  devtools in the production profile.
+- **New query operator / field type** — extend `FieldOperator`/`FieldType` and the per-type branch in
+  `QueryBuilder`; the schema-driven dispatch does the rest.
+- **New aggregation kind** — add it to `AggregationCriteria` handling in `AggregationBuilder` and the
+  matching walk in `AggregationParser`.
+- **New source index (menus, etc.)** — the engine is already generic; point it at the new
+  `prefix + org` indices once `elastic-service` writes them. No builder changes.

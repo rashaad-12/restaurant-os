@@ -2,9 +2,9 @@ services:
   menu-db:
     image: mongo:7.0
     container_name: menu-db
+    env_file:
+      - .env/dev/.env
     environment:
-      MONGO_INITDB_ROOT_USERNAME: dev
-      MONGO_INITDB_ROOT_PASSWORD: dev
       MONGO_INITDB_DATABASE: menu_db
     ports:
       - "27018:27017"
@@ -13,9 +13,9 @@ services:
   user-db:
     image: mongo:7.0
     container_name: user-db
+    env_file:
+      - .env/dev/.env
     environment:
-      MONGO_INITDB_ROOT_USERNAME: dev
-      MONGO_INITDB_ROOT_PASSWORD: dev
       MONGO_INITDB_DATABASE: user_db
     ports:
       - "27019:27017"
@@ -32,10 +32,9 @@ services:
       - "--gtid-mode=ON"
       - "--enforce-gtid-consistency=ON"
       - "--binlog-expire-logs-seconds=604800"
+    env_file:
+      - .env/dev/.env
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_USER: dev
-      MYSQL_PASSWORD: dev
       MYSQL_DATABASE: order_db
     ports:
       - "3308:3306"
@@ -92,12 +91,12 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.2.0
     container_name: elasticsearch
+    env_file:
+      - .env/dev/.env
     environment:
       - xpack.security.enabled=false
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - ELASTIC_USERNAME=admin
-      - ELASTIC_PASSWORD=password
     ports:
       - "9200:9200"
 

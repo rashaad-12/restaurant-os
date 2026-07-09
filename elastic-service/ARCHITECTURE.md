@@ -69,7 +69,6 @@ config/
   IndexResolver                (prefix, routingKey) → tenant index name; wildcard for deletes
   RestClientConfig             RestClients for identity-service + enrichment (timeouts)
   ElasticSearchConfig          ElasticsearchClient (Rest5 transport, basic auth, timeouts)
-  SourceProperties/…           binding for integration.* and elasticsearch.*
 dto/  ChangeEvent{before,after,op} · ChangeRecord{id} · IndexDocument{id,routingKey,body} · ServiceToken
 enums/ChangeEventOperation     CREATE | UPDATE | DELETE (Debezium op)
 ```
@@ -144,83 +143,29 @@ Other knobs: `spring.kafka.consumer.*` (bootstrap, group), `kafka.consumer.concu
 
 ---
 
-## 6. Rating — 8 / 10
+## 6. Extensibility Rules — Dos & Don'ts
 
-**Reviewed:** 2026-07-08 (source).
+**Do**
+- **Do** add a new source purely via `sync.sources.*` plus an enrichment endpoint on the owning
+  service — no code in this worker.
+- **Do** keep `ChangeEventParser` and `EnrichmentClient` free of any domain type.
+- **Do** treat `IndexDocument.body` as opaque JSON owned by the source service.
+- **Do** keep every write idempotent (index/delete by the document's own id) and ack only after a
+  durable index.
 
-| Dimension | Score | Notes |
-|---|---|---|
-| Architecture & correctness | 9 / 10 | Textbook CDC-enrichment-index pipeline: manual-ack at-least-once, idempotent writes, upsert/delete coalescing, late-delete detection, DLQ with backoff+jitter. |
-| Genericity / extensibility | 9 / 10 | Fully source-driven via `sync.sources.*`; a new source is pure config. `ChangeEventParser` and `EnrichmentClient` carry no domain. |
-| Resilience | 8 / 10 | Retry/backoff/jitter, non-retryable parse errors, idempotent DLQ producer, token refresh with skew. |
-| Security posture | 7 / 10 | Correct SYSTEM-token client with skew refresh; loses points only for committed local secrets and no TLS to ES/Kafka in dev config. |
-| Observability | 5 / 10 | Good structured debug logs + actuator health, but no metrics on lag/throughput/DLQ rate and no tracing. |
-| Testing | 3 / 10 | `spring-kafka-test` is on the classpath but there are no tests yet for the coalescing/late-delete logic — the highest-value place to add them. |
-
-**Verdict:** the most operationally sophisticated service in the repo. The design is production-grade;
-the gaps are test coverage and metrics, not the pipeline itself.
-
-### Known gaps
-| Sev | Finding |
-|---|---|
-| 🟠 | No tests for `SyncServiceImpl` coalescing / late-delete / `ChangeEventParser` DLQ routing (the subtle, high-risk logic). |
-| 🟠 | Committed local secrets (`elasticsearch.password`, `client-secret`) and plaintext ES/Kafka in dev config. |
-| 🟡 | No consumer-lag / DLQ-rate / enrichment-latency metrics. |
-| 🟡 | `delete-by-query` with `refresh=true` on every batch is heavy under high delete volume. |
-| 🟡 | Enrichment call has no explicit retry/circuit-breaker (relies on the whole batch retrying), so a slow source amplifies redelivery. |
+**Don't**
+- **Don't** synthesize a search document from the raw CDC row — always enrich from the owner.
+- **Don't** ack a batch before it is indexed, and don't introduce a non-idempotent write.
+- **Don't** make parse/permanent failures retryable — they must go straight to the DLQ so they can't
+  block the partition.
+- **Don't** log the SYSTEM token or commit the client-secret.
 
 ---
 
-## 7. Next plans (roadmap)
+## 7. How to extend
 
-**P0 — Test the correctness-critical logic**
-1. Unit-test `SyncServiceImpl`: upsert/delete coalescing, late-delete promotion, multi-topic batches.
-2. Unit-test `ChangeEventParser`: tombstone skip, missing-`op` rejection, DLQ routing on bad JSON.
-3. Integration test with `spring-kafka-test` (embedded broker) + a stubbed enrichment endpoint and a
-   Testcontainers Elasticsearch, asserting end-to-end index/delete convergence.
-
-**P1 — Operability**
-4. Micrometer metrics: consumer lag, records/sec, enrichment latency, bulk-error rate, DLQ count;
-   Prometheus scrape + alert on DLQ growth and lag.
-5. Distributed tracing (OTel) propagated from the CDC event through enrichment into the ES write.
-6. A DLQ replay tool/endpoint (drain the DLQ back into the source topic after a fix).
-
-**P2 — Robustness & scale**
-7. Dedicated retry/circuit-breaker (Resilience4j) around `EnrichmentClient` so a degraded source
-   doesn't turn into unbounded batch redelivery.
-8. Index lifecycle: templates/ILM for the `dev_orders_*` indices (mappings, rollover, retention) —
-   today indices are created implicitly by first write.
-9. Generalise beyond orders: add menu/user sources (emit CDC + an enrichment endpoint on those
-   services) purely via `sync.sources.*`.
-
----
-
-## 8. Production optimisation plan
-
-**Throughput & batching**
-- Tune `max.poll.records`, `fetch.min.bytes`/`fetch.max.wait.ms`, and `kafka.consumer.concurrency`
-  against partition count (concurrency ≤ partitions). Batch enrichment already amortises the network
-  round-trip — keep enrichment page sizes aligned with poll size.
-- Prefer bulk index + a single `delete-by-query` per batch (already done); avoid `refresh=true` on
-  the hot path — let ES refresh on its interval and reserve forced refresh for correctness-critical
-  deletes only.
-
-**Reliability**
-- Size retry attempts/backoff to the source's real recovery time; ensure the DLQ has its own
-  monitoring and replay path so poison messages are visible, not silently dropped.
-- Idempotent producer (`enable.idempotence=true`, `acks=all`) is already set for the DLQ — keep it.
-
-**Resource & connection tuning**
-- Elasticsearch client: explicit connect/socket timeouts (present), a bounded connection pool, and
-  retry on 429/503; back-pressure on bulk rejections.
-- Cache and reuse the SYSTEM token (present); ensure clock-skew refresh (60s) is comfortably inside
-  the token TTL.
-
-**Security & config hardening**
-- Externalise `client-secret` and ES credentials to env/secrets; enable TLS + auth to Elasticsearch
-  and (where applicable) Kafka in production.
-- Run one consumer group across N replicas for horizontal scale; partitions bound parallelism.
-
-**Observability**
-- Ship the P1 metrics + tracing before scaling load; alert on lag, DLQ rate, and enrichment error
-  rate. Structured JSON logs already include topic/partition/offset and id counts — keep that.
+- **Onboard a new domain to search** — add a `sync.sources.<name>` block (topic, index-prefix,
+  enrichment base-url + path) and expose a SYSTEM-gated `by-ids` enrichment endpoint on the owning
+  service that returns `List<IndexDocument>`. No worker code changes.
+- **New CDC source shape** — if a source's change event isn't Debezium-shaped, extend
+  `ChangeEventParser`; keep the output `ChangeEvent` domain-neutral.

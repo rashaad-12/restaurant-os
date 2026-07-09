@@ -8,7 +8,7 @@ import co.elastic.clients.elasticsearch.core.SearchRequest;
 import com.restaurantos.analyticservice.config.QueryLimits;
 import com.restaurantos.analyticservice.dto.request.AggregationCriteria;
 import com.restaurantos.analyticservice.dto.request.SearchCriteria;
-import com.restaurantos.analyticservice.dto.request.SortSpec;
+import com.restaurantos.analyticservice.dto.request.SortCriteria;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -71,14 +71,14 @@ public class SearchRequestBuilder {
                 .aggregations(aggregations));
     }
 
-    private List<SortOptions> buildSort(List<SortSpec> specs) {
+    private List<SortOptions> buildSort(List<SortCriteria> specs) {
         // No domain-specific default sort — an unknown field would error on other indices. Callers
         // that want ordering pass an explicit sort; otherwise ES applies its default (_score/_doc).
         List<SortOptions> options = new ArrayList<>();
         if (specs == null || specs.isEmpty()) {
             return options;
         }
-        for (SortSpec spec : specs) {
+        for (SortCriteria spec : specs) {
             if (spec.getField() == null) continue;
             SortOrder order = "desc".equalsIgnoreCase(spec.getOrder()) ? SortOrder.Desc : SortOrder.Asc;
             options.add(SortOptions.of(so -> so.field(fs -> fs.field(spec.getField()).order(order))));
