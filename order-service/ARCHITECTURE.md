@@ -11,7 +11,7 @@ Runnable Spring Boot application (`bootJar`). Depends on:
 Local dev: port **8184**, **MySQL** `order_db` (`docker-compose` → `order-db`, `localhost:3308`),
 JPA with `ddl-auto: update` (schema evolves from the entities — no migration tool yet).
 
-It is also the **enrichment source** for the search pipeline: `elastic-service` calls back into
+It is also the **enrichment source** for the search pipeline: `elastic-sync-service` calls back into
 `/order-api/v1/order/search-documents/by-ids` (gated `hasRole('SYSTEM')`) to pull denormalized order
 documents for indexing.
 

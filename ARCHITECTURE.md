@@ -28,7 +28,7 @@
         │              Debezium (kafka-connect) ──► Kafka topic dev.restaurant.orders
         │                                                     │
         │                                                     ▼
-        │                                        elastic-service (CDC sync worker)
+        │                                        elastic-sync-service (CDC sync worker)
         │                          enrichment ◄──── pulls docs from order-service (SYSTEM JWT)
         │                                                     │  bulk index
         │                                                     ▼
@@ -55,7 +55,7 @@ where they exist, live in that module's git-ignored `DEFECTS.md` / `ENHANCEMENTS
 | `identity-service` | app — **JWT issuer**, user/restaurant domain | MongoDB `user_db` | [identity-service/ARCHITECTURE.md](identity-service/ARCHITECTURE.md) |
 | `menu-service` | app — menu domain | MongoDB `menu_db` | [menu-service/ARCHITECTURE.md](menu-service/ARCHITECTURE.md) |
 | `order-service` | app — order domain (+ search enrichment) | MySQL `order_db` | [order-service/ARCHITECTURE.md](order-service/ARCHITECTURE.md) |
-| `elastic-service` | app — CDC→ES sync worker (headless) | Elasticsearch (writes) | [elastic-service/ARCHITECTURE.md](elastic-service/ARCHITECTURE.md) |
+| `elastic-sync-service` | app — CDC→ES sync worker (headless) | Elasticsearch (writes) | [elastic-sync-service/ARCHITECTURE.md](elastic-sync-service/ARCHITECTURE.md) |
 | `analytic-service` | app — read-only ES query/analytics API | Elasticsearch (reads) | [analytic-service/ARCHITECTURE.md](analytic-service/ARCHITECTURE.md) |
 
 ---
@@ -76,9 +76,9 @@ where they exist, live in that module's git-ignored `DEFECTS.md` / `ENHANCEMENTS
   extend it: identity's `AccessGuard` (privilege-escalation guard), order's `OrderAccessGuard`
   (per-record **ownership**). Tenant scope always comes from the token, never the request body.
 - **Integration — CDC + enrichment (not shared DB).** The order → search flow is: DB change →
-  Debezium → Kafka → `elastic-service` enriches by calling back into the owning service with a SYSTEM
+  Debezium → Kafka → `elastic-sync-service` enriches by calling back into the owning service with a SYSTEM
   token → bulk-index into per-tenant ES indices. `analytic-service` queries those indices read-only.
-- **Generic platform services.** `elastic-service` and `analytic-service` are deliberately
+- **Generic platform services.** `elastic-sync-service` and `analytic-service` are deliberately
   domain-agnostic: sources, enrichment endpoints, index prefixes, and query shapes are configuration
   or runtime-introspected, so new domains are largely config, not code.
 - **Mapping / edges:** MapStruct between layers; `@RestControllerAdvice` per service, with
@@ -115,7 +115,7 @@ prefix is a **coordinated, deploy-everything-together** change.
 - **Do** put both layers on every mutating endpoint: a `@PreAuthorize` role gate **and** a
   `ScopeGuard`/service-guard tenant-scope check.
 - **Do** add a new domain to the search pipeline as **config** (`sync.sources.*` + an enrichment
-  endpoint on the owning service), not as new code in `elastic-service`.
+  endpoint on the owning service), not as new code in `elastic-sync-service`.
 - **Do** integrate services through CDC events + enrichment, keeping the search-document shape owned
   by the domain service that produces it.
 - **Do** externalise every credential (DB, ES, Kafka, SYSTEM client-secret, RSA private key) to

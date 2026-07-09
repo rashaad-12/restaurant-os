@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * The denormalized order search document. order-service <em>owns</em> this projection; the platform
- * (elastic-service) indexes it opaquely and analytic-service queries it. Changing this shape is a
+ * (elastic-sync-service) indexes it opaquely and analytic-service queries it. Changing this shape is a
  * change to the search index contract — coordinate with the index template.
  */
 @Getter

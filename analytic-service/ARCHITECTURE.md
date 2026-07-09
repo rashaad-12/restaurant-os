@@ -1,14 +1,14 @@
 # analytic-service — Architecture
 
 The platform's **read-only analytics / search API over Elasticsearch**. It exposes a **generic,
-schema-driven** query + aggregation surface over the per-tenant order indices that `elastic-service`
+schema-driven** query + aggregation surface over the per-tenant order indices that `elastic-sync-service`
 maintains (`dev_orders_<org>`). It owns no data and does no writes — it turns a declarative
 `SearchCriteria` (a nestable condition tree + sort + pagination + aggregations) into a native
 Elasticsearch request, executes it, and maps the result back.
 
 Runnable Spring Boot application (`bootJar`). Local dev: port **8186**. Reads Elasticsearch directly
 via the ES Java client. **It is the query side of the CDC pipeline** — the counterpart to
-elastic-service's write side.
+elastic-sync-service's write side.
 
 Depends on: `co.elastic.clients:elasticsearch-java`, Jackson. **No datastore of its own.**
 
@@ -17,7 +17,7 @@ Depends on: `co.elastic.clients:elasticsearch-java`, Jackson. **No datastore of 
 ## 1. Where it sits
 
 ```
-  Elasticsearch  dev_orders_<org>          ◄── written by elastic-service (CDC sync)
+  Elasticsearch  dev_orders_<org>          ◄── written by elastic-sync-service (CDC sync)
          ▲
          │ native ES query / aggregation (read-only)
          │
@@ -114,7 +114,7 @@ and swappable.
 ## 5. Invariants
 
 1. **Read-only, owns no data.** No writes to ES, no datastore. The index contents are owned by the
-   source service via elastic-service; analytic-service is a pure query layer.
+   source service via elastic-sync-service; analytic-service is a pure query layer.
 2. **Schema-driven, not field-hardcoded.** Query construction is derived from live field-caps, so the
    same code serves any index shape. Don't hardcode domain field names into the builders.
 3. **Every query is bounded.** All pagination/aggregation limits in `QueryLimits` must stay enforced
@@ -154,4 +154,4 @@ and swappable.
 - **New aggregation kind** — add it to `AggregationCriteria` handling in `AggregationBuilder` and the
   matching walk in `AggregationParser`.
 - **New source index (menus, etc.)** — the engine is already generic; point it at the new
-  `prefix + org` indices once `elastic-service` writes them. No builder changes.
+  `prefix + org` indices once `elastic-sync-service` writes them. No builder changes.
