@@ -3,16 +3,14 @@ package com.restaurantos.analyticservice.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import static java.util.Objects.isNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Component
 public class IndexResolver {
 
-    @Value("${elasticsearch.prefix}")
     private final String prefix;
 
-    public IndexResolver( String prefix) {
+    public IndexResolver(@Value("${elasticsearch.prefix}") String prefix) {
         this.prefix = prefix;
     }
 

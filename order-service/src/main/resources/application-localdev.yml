@@ -26,3 +26,8 @@ logging:
     com.restaurantos.orderservice: DEBUG
     org.springframework.security: DEBUG
     com.restaurantos.coresecurity: DEBUG
+
+app:
+  security:
+    jwt:
+      public-key: .env/dev/keys/app_public.pem

@@ -23,8 +23,8 @@ app:
   security:
     jwt:
       issuer: restaurant-os
-      private-key: classpath:keys/app_private.pem
-      public-key: classpath:keys/app_public.pem
+      private-key: .env/dev/keys/app_private.pem
+      public-key: .env/dev/keys/app_public.pem
       cookie:
         secure: false
         same-site: Lax

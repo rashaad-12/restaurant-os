@@ -1,9 +1,7 @@
 package com.restaurantos.coresecurity.config;
 
-import com.restaurantos.coresecurity.revocation.TokenRevocationChecker;
 import com.restaurantos.coresecurity.web.RestSecurityErrorHandler;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -50,12 +48,6 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public TokenRevocationChecker tokenRevocationChecker() {
-        return tokenId -> false;
     }
 
     private CorsConfigurationSource corsConfigurationSource() {
